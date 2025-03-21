@@ -1,0 +1,360 @@
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+% The preceding line is only needed to identify funding in the first footnote. If that is unneeded, please comment it out.
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{multicol}
+\usepackage{booktabs}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage{float}
+\usepackage{booktabs, makecell}
+\setcellgapes{3pt}
+\usepackage{siunitx}
+\usepackage{xurl}
+\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
+    T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+    
+\begin{document}
+
+\makeatletter % changes the catcode of @ to 11
+\newcommand{\linebreakand}{%
+  \end{@IEEEauthorhalign}
+  \hfill\mbox{}\par
+  \mbox{}\hfill\begin{@IEEEauthorhalign}
+}
+\makeatother % changes the catcode of @ back to 12
+
+\title{Using Clustering and PCA to Predict TV Show Genres from Visual Features of Posters\\
+}
+
+\author{\IEEEauthorblockN{Renaire Odarve*}
+\IEEEauthorblockA{\textit{College of Computing and Information Technology} \\
+\textit{National University}\\
+Manila, Philippines \\
+odarverb@students.national-u.edu.ph}
+\and
+\IEEEauthorblockN{Karl Satchi Navida}
+\IEEEauthorblockA{\textit{College of Computing and Information Technology} \\
+\textit{National University}\\
+Manila, Philippines \\
+navidake@students.national-u.edu.ph}
+\\
+\and
+
+\IEEEauthorblockN{Mico C. Magtira}
+\IEEEauthorblockA{\textit{Philippine Center for Social Media Analytics } \\
+\textit{National University}\\
+Philippines, Manila, Philippines \\
+mcmagtira@national-u.edu.ph}
+}
+
+\maketitle
+
+\begin{abstract}
+This study aims to analyze and predict genres in TV Posters through unsupervised learning, using Principal Component Analysis (PCA) and clustering models to determine patterns in visual features and metadata features. The results show that K-means Clustering has the highest Silhouette Score (0.324), Davies-Bouldin Index (1.003), and the Calinski-Harabasz Index (18306.452). The genre is then mapped onto the clusters. Based on the validation metrics such as Normalized Mutual Information (0.019), Adjusted Rand Index (0.008), and Purity Score (0.337), the results indicate that the genre is not aligned with the clusters from the K-means model, thereby concluding that mapping is not a good predictor of the genre.     
+\end{abstract}
+
+\begin{IEEEkeywords}
+TV Posters, Genre Prediction, Unsupervised Learning, Principal Component Analysis, Clustering, Silhouette Score, Davies-Bouldin Index, Calinksi-Harabasz Index 
+\end{IEEEkeywords}
+
+\section{Introduction}
+Posters have been an effective marketing tool in the modern society. It is designed to evoke emotions, whether it will be for movies, advertisements, TV shows, or election campaigns. With the advancement of technology, it has now become possible to analyze these posters quantitatively by machine learning. 
+
+This study aims to assess the viability of using visual patterns and metadata of TV posters as predictors of genre, using Principal Component Analysis (PCA), and clustering methods such as K-means, Hierarchical, DBSCAN, Gaussian Mixture Models (GMM) and BIRCH. Lastly, it evaluates whether the clusters formed have a relationship with the genres by mapping and applying external validation metrics.
+
+\section{Review of Related Literature}
+
+As digital technology advances, the need to manage and utilize the information alongside it becomes vital \cite{b1}. Genre classification has been extensively studied for the past twenty years due to the advancement of technology. However, due to its nature of being a labeled data, most of the studies have been done by supervised learning methods. 
+
+\subsection{Poster Analysis}
+
+Posters have been used throughout history since mankind is able to comprehend how to draw and color at places. Effective visual composition not only conveys narrative elements but also evokes specific emotions in viewers. For instance, the use of color theory within a composition can elicit feelings of joy, sadness, or tension \cite{b2}. 
+
+There have been multiple studies that have been conducted. Majority are mostly done on movie posters and genre being the main feature to do a classification. For instance, the study of Andika and Wulandhari used Convolutional Neural Network to classify genres on films \cite{b3}. In another study, Chu and Guo applied Deep Neural Networks to the same problem \cite{b4}. 
+
+\subsection{Color-Based Feature Extraction}
+
+Color-Based Feature Extraction has been one of the techniques available when doing image classification. However, with the advancement of technology, more researchers have opted to use richer features such as edge detection, object extraction, etc. 
+
+A study has been done to classify genre based on the color features of movie posters using data transformation with distance ranking, kNN and Naives Bayes Classifier. (Ivasic-Kos, et al. 2014) \cite{b5}. Korai, et al., also did a similar study but with a different method called Deep Feed Forward Network \cite{b6}.
+
+\subsection{Gaps in Literature and Study Contribution}
+
+Majority of the research has been done on movie posters. Most of the genre classification also has been done through supervised learning. This leaves a gap about understanding unsupervised learning in genre classification, but also being able to understand the properties of TV posters. This study provides a fresh perspective on how to approach clustering. The genre being a labeled data is rare to be seen in an unsupervised learning. Also, label alignment after clustering is not as common of a study approach.
+
+\section{Methodology}
+
+\subsection{Data Collection}
+The dataset gathered is scraped from IMDB, a publicly available website that contains extensive metadata from both films and tv shows \cite{b8}. The total number of tv show posters downloaded is 99536. The metadata of tv shows has 59276 rows and 7 columns. The columns are "IMDB ID", "Title", "Rating", "Rating Content", "Date Published", and "Genres". The dataset will only utilize 50000 rows of metadata due to time constraints of processing images and the algorithms involved.
+
+\subsection{Data Pre-Processing}
+Incomplete, and null values were excluded from the metadata. Missing values were also excluded to ensure the quality of training and testing data. Red, Green, Blue and White mean values are extracted from the images using Computer Vision Techniques. Two variables were selected, "Rating and Date Published." The variables are chosen because they are numerical, which are the best features for PCA Analysis. The "Date Published" is truncated such that only the first four strings are selected as the variable is in a Year-Month-Date format. The focus is only "Year", hence only the first four strings are retrieved and converted into float.   
+
+\begin{table}[h]
+    \renewcommand{\arraystretch}{1.2}
+    \centering
+    \caption{IMDB Genre Classes}
+    \label{tab:imdb_genres}
+    \begin{tabular}{ll|ll}
+        \hline
+        \textbf{Genre Class} & \textbf{Genre Name} & \textbf{Genre Class} & \textbf{Genre Name} \\
+        \hline
+        1  & Action      & 15 & Music \\
+        2  & Adult       & 16 & Musical \\
+        3  & Adventure   & 17 & Mystery \\
+        4  & Animation   & 18 & News \\
+        5  & Biography   & 19 & Reality-TV \\
+        6  & Comedy      & 20 & Romance \\
+        7  & Crime       & 21 & Sci-Fi \\
+        8  & Documentary & 22 & Short \\
+        9  & Drama       & 23 & Sport \\
+        10 & Family      & 24 & Talk-Show \\
+        11 & Fantasy     & 25 & Thriller \\
+        12 & Game-Show   & 26 & War \\
+        13 & History     & 27 & Western \\
+        14 & Horror      &    &  \\
+        \hline
+    \end{tabular}
+\end{table}
+
+
+The genre classes will be based on the metadata retrieved and filtered in IMDB \cite{b8}. As the study is centered on unsupervised learning, it will not be used during the PCA process and clustering algorithms. It will be used only on mapping for the validation of clusters.
+
+\subsection{Experimental Setup}
+This research utilized Python (Jupyter Notebook in Visual Studio Code) with libraries such as BeautifulSoup, Requests, Numpy, Pandas, CV2, Matplotlib, Seaborn, and Scikit-Learn. BeautifulSoup and Requests were used for scraping data. Pandas facilitated data manipulation. CV2 were used to extract image feature (RGBW mean values).  Seaborn and Matplotlib were used for dataset visualization, and Scikit-Learn provides essential tools for model training and evaluation, including standard scaler, cross-validation, and error metrics.
+
+\subsection{Algorithms}
+The algorithms used in this research are:
+
+\subsubsection{K-Means Clustering}
+It clusters based on how near the data points are to a central chosen value \cite{b7}. The parameters used are $n_clusters=n_clusters$ (optimal value passed by the elbow score, can be a range of values) and $random_state=42$ (ensures consistency by having value).
+
+\subsubsection{Hierarchical Clustering}
+It clusters based on the proximity distance (degree of relationship) between objects \cite{b7}. The parameter linkage used are (to use dendrogram) with the dataset features to cluster and $method=ward$ to minimize the variance in clusters. The parameter fcluster has parameters Z (output of linkage), n-clusters (the number of clusters to form, in this case from two to seven), and $criterion='maxclust'$ (forcing the exactly the number of clusters).
+
+\subsubsection{DBSCAN}
+It clusters based on the density of data points on a certain distance \cite{b7}. The parameters used are $ep=[0.3,0.5,0.7,1.0]$ The basis being what was saw in scatter graph of PC1 and PC2 being highly dense. The $min_samples=5$, the minimum number of point to form a cluster.
+
+\subsubsection{GMM}
+It clusters based on the assumption that the data points is on a Gaussian Distribution and tries to guess the probability of the location of the point part of a cluster \cite{b7}. The parameters are $n_components=n_clusters$, $random_state=42$.
+
+\subsubsection{BIRCH}
+It clusters in a Feature Tree. It works better in large datasets \cite{b7}. The parameters used are $n_clusters=n_clusters$ (optimal value passed).
+
+
+\subsection{Training Procedure}\label{SCM}
+
+For the training model, the researchers implemented feature engineering onto the numerical features. First, the features are Standardized through StandardScaler. Principal Component Analysis (PCA) was applied to reduce dimensions, retain key components, and reject redundant data.
+
+\subsection{Metrics}
+The study employs three evaluation metrics to assess each algorithm and three validation metrics to evaluate the alignment of clusters with genre class labels.
+
+\subsubsection{Silhouette Score}
+The Silhouette Score measures how well-separated clusters are. It ranges from -1 to 1, with higher values indicating better cluster quality. The formula is given by:
+\begin{equation}
+    s(i) = \frac{b(i) - a(i)}{\max\{a(i), b(i)\}}
+    \label{eq:silhouette_score}
+\end{equation}
+where \( s(i) \) is the silhouette score for sample \( i \), \( a(i) \) is the average distance between \( i \) and all other points in the same cluster, and \( b(i) \) is the average distance between \( i \) and all points in the nearest neighboring cluster.
+
+\subsubsection{Davies-Bouldin Index}
+The Davies-Bouldin Index (DBI) evaluates cluster compactness and separation. Lower values indicate better clustering quality. It is defined as:
+\begin{equation}
+    \mathrm{DBI} = \frac{1}{N} \sum_{i=1}^{N} \max_{j \neq i} \left( \frac{s_i + s_j}{d_{ij}} \right)
+    \label{eq:davies_bouldin_index}
+\end{equation}
+where \( N \) is the number of clusters, \( s_i \) and \( s_j \) are the average intra-cluster distances for clusters \( i \) and \( j \), and \( d_{ij} \) is the distance between their centroids.
+
+\subsubsection{Calinski-Harabasz Index}
+The Calinski-Harabasz Index (CHI) measures the ratio of between-cluster dispersion to within-cluster dispersion. Higher values indicate better-defined clusters. It is given by:
+\begin{equation}
+    \mathrm{CHI} = \frac{\text{between-cluster dispersion}}{\text{within-cluster dispersion}}
+    \label{eq:calinski-harabasz_index}
+\end{equation}
+where between-cluster dispersion measures variance between cluster centroids and the dataset centroid, and within-cluster dispersion measures variance within clusters.
+
+\subsubsection{Purity Score}
+The Purity Score measures the proportion of data points in each cluster belonging to the most common genre. It ranges from 0 to 1, with higher values indicating better alignment. The formula is:
+\begin{equation}
+    \text{Purity} = \frac{1}{N} \sum_{i=1}^{K} \max_j \left| C_i \cap G_j \right|
+    \label{eq:purity_score}
+\end{equation}
+where \( N \) is the total number of data points, \( K \) is the number of clusters, \( C_i \) represents data points in cluster \( i \), \( G_j \) represents points in ground-truth class \( j \), and \( \left| C_i \cap G_j \right| \) is their intersection.
+
+\subsubsection{Normalized Mutual Information}
+Normalized Mutual Information (NMI) evaluates the mutual dependence between cluster assignments and actual genre labels. It ranges from 0 to 1, with higher values indicating better alignment. The formula is:
+\begin{equation}
+    \mathrm{NMI} = \frac{2 I(C, G)}{H(C) + H(G)}
+    \label{eq:normalized_mutual_information}
+\end{equation}
+where \( I(C, G) \) represents the mutual information between cluster assignment \( C \) and genre labels \( G \), and \( H(C) \), \( H(G) \) denote their respective entropies.
+
+\subsubsection{Adjusted Rand Index}
+The Adjusted Rand Index (ARI) measures the similarity between cluster assignments and actual genres while adjusting for chance. It ranges from -1 to 1, with higher values indicating better alignment. The formula is depicted in Fig.~\ref{fig:ari_equation}.
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.9\linewidth]{image.png}
+    \caption{Adjusted Rand Index (ARI) Equation}
+    \label{fig:ari_equation}
+\end{figure}
+
+where \( N \) is the total number of samples, \( n_{ij} \) is the number of shared points between cluster \( i \) and class \( j \), \( a_i \) is the size of cluster \( i \), \( b_j \) is the size of class \( j \), and \( \binom{x}{2} \) represents the binomial coefficient.
+
+
+\section{Results and Discussion}
+
+\subsection{Principal Component Analysis}
+In this study, PCA was used to analyze the relationship between RGBW mean values, and the metadata variables year and rating. It was also used to determine the best features to use in the model.
+
+\begin{table}[h]
+    \renewcommand{\arraystretch}{1.2}
+    \centering
+    \caption{Explained Variance Ratio}
+    \label{tab:explained_variance}
+    \begin{tabular}{cc}
+        \hline
+        \textbf{Principal Component} & \textbf{Explained Variance Ratio} \\
+        \hline
+        PC1 & 0.5449 \\
+        PC2 & 0.1739 \\
+        PC3 & 0.1591 \\
+        \hline
+    \end{tabular}
+\end{table}
+
+
+In Table 2, the three components, PC1, PC2, and PC3 were chosen out of six principal components. It is because it satisfies the condition put forth by Cumulative Explained Variance Method wherein it must meet the minimum threshold of 80 percent. 
+
+\begin{table}[h]
+    \renewcommand{\arraystretch}{1.2}
+    \centering
+    \caption{Feature Loadings for Principal Components}
+    \label{tab:feature_loadings}
+    \begin{tabular}{cccc}
+        \hline
+        \textbf{Feature} & \textbf{PC1} & \textbf{PC2} & \textbf{PC3} \\
+        \hline
+        r\_mean  &  0.4937  & -0.0093  & -0.0066  \\
+        g\_mean  &  0.5298  & -0.0189  &  0.0210  \\
+        b\_mean  &  0.4977  &  0.0117  &  0.0288  \\
+        w\_mean  &  0.4759  &  0.0100  &  0.0296  \\
+        rating   & -0.0287  & -0.7019  &  0.7114  \\
+        year     & -0.0227  &  0.7118  &  0.7012  \\
+        \hline
+    \end{tabular}
+\end{table}
+
+
+In Table 3, PC1 exhibited significant scores on the RGBW mean values. This means that PC1 shows the color intensity and overall brightness, with green slightly brighter than white. PC2 showed negative relationship between rating and year. A higher PC2 means its a recent release with a lower rating while a lower PC2 means its an old release that has higher rating. For PC3, it showed that rating and year are in positive relationship. The more recent the show, the better the rating.
+
+\subsection{Clustering Analysis}
+
+\begin{table}[h]
+    \renewcommand{\arraystretch}{1.2}
+    \centering
+    \caption{Clustering Evaluation Results Sorted by Descending Silhouette Score}
+    \label{tab:clustering_results}
+    \setlength{\tabcolsep}{3pt} % Reduce column spacing
+    \scriptsize % Reduce text size
+    \begin{tabular}{lcccc}
+        \toprule
+        \textbf{Method} & \textbf{n\_clusters} & \textbf{Silhouette} & \textbf{DBI} & \textbf{CHI} \\
+        \midrule
+        K-means        & 2  & 0.324 & 1.149 & 18346.2 \\
+        BIRCH         & 2  & 0.304 & 1.182 & 15868.1 \\
+        K-means        & 5  & 0.303 & 0.997 & 14730.7 \\
+        K-means        & 4  & 0.291 & 1.101 & 14640.1 \\
+        Hierarchical  & 2  & 0.283 & 1.243 & 15196.7 \\
+        K-means        & 6  & 0.281 & 1.084 & 13513.8 \\
+        BIRCH         & 3  & 0.259 & 1.065 & 10163.9 \\
+        K-means        & 3  & 0.257 & 1.283 & 14798.6 \\
+        BIRCH         & 4  & 0.249 & 1.034 & 8890.7 \\
+        Hierarchical  & 3  & 0.226 & 1.247 & 11354.7 \\
+        Hierarchical  & 4  & 0.221 & 1.190 & 9876.0 \\
+        BIRCH         & 6  & 0.199 & 1.265 & 8197.2 \\
+        Hierarchical  & 6  & 0.193 & 1.180 & 9657.0 \\
+        BIRCH         & 5  & 0.191 & 1.222 & 8033.7 \\
+        Hierarchical  & 5  & 0.181 & 1.306 & 9629.0 \\
+        GMM           & 2  & 0.177 & 1.995 & 4446.3 \\
+        GMM           & 3  & 0.093 & 3.587 & 2871.2 \\
+        GMM           & 4  & 0.081 & 3.084 & 3198.5 \\
+        GMM           & 5  & 0.037 & 1.710 & 4512.8 \\
+        GMM           & 6  & 0.031 & 1.834 & 3907.3 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+Table 4 on the next page shows the results of the evaluation metrics on different number of clusters of different clustering algorithms after PCA were performed in the feature dataset. K-means with 2 clusters has the best performance on silhouette score and Calinski Harabasz Index (CHI). K-means at 5 clusters meanwhile has the lowest DBI. The lower the DBI, the better its cluster quality. It can be concluded that K-means Clustering performs best for the features given with 2 clusters as the best performing metric. Meanwhile DBSCAN was not included as it only yielded 1 cluster. GMM performs poorly in with the given feature. Both models are categorized as density-based models. This can be concluded that the feature dataset is densely packed and homogeneous.
+
+As shown in Figure 2 below, Cluster 0 has consistently higher values of RGBW means than Cluster 1. It can be concluded that Cluster 0 is more vibrant in comparison to Cluster 2. While there are no changes in the rating and year of two clusters, indicating that it isn't a differentiator of the two clusters, it is observed that the dataset is mostly on the range of year 2000 to 2020 while the ratings are in the range of 5.5 to 8.5.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.48\textwidth]{output11.png}
+    \caption{Violin Plot of Feature Distribution Across Clusters}
+    \label{fig:Violin_Plot }
+\end{figure}
+
+
+\subsection{Genre Mapping}
+
+After clustering, the genre dataset will then be mapped into the clusters and do a couple of validation metrics to determine whether the clusters are aligned with the genre.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.48\textwidth]{output33.png}
+    \caption{Heatmap of Genre Class on the Clusters}
+    \label{fig:heatmap}
+\end{figure}
+
+Figure 2 shows the heatmap distribution of the genre classes in each cluster. While both clusters focus on two genre classes, first cluster focuses on comedy, while Cluster 1 focuses on drama. There is also a noticeable disparity (difference of 0.4 or greater) on the class animation (higher in cluster 0), crime (higher distribution in cluster 1), family (higher in cluster 0), mystery (higher in cluster 1), and romance (higher in cluster 0).
+
+The observations suggest that cluster 0 has more comedy, animation, family and romance. Meanwhile cluster 1 has more drama, documentary, and crime. It makes sense intuitively because cluster 0 based on figure 1 has higher values of RGBW, which means brighter and more vibrant, in comparison to cluster 2. 
+
+\begin{table}[h]
+    \renewcommand{\arraystretch}{1.2}
+    \centering
+    \caption{Validation Metrics Against Genres}
+    \label{tab:validation}
+    \begin{tabular}{lc}
+        \hline
+        \textbf{Metric} & \textbf{Score} \\
+        \hline
+        Normalized Mutual Information (NMI) & 0.019 \\
+        Adjusted Rand Index (ARI) & 0.008 \\
+        Purity Score & 0.337 \\
+        \hline
+    \end{tabular}
+\end{table}
+
+
+As shown in Table 3, the NMI score being low suggests limited alignment between clusters and genre. Same result with the ARI. Purity Score being slightly lower than 0.5 mean its a bit more of a mix of genres rather than being a genre specific cluster.
+
+
+\section{Conclusion}
+
+This study analyzed and explored the effectiveness of using clustering on TV show posters based on the visual features (RGBW) of the image and numerical IMDB metadata (rating and year) through Principal Component Analysis and unsupervised learning. Five clustering algorithms were used, K-means, Hierarchical, DBSCAN, Gaussian Mixture Models, and BIRCH. K-means received the highest score on the three evaluation metrics, having a Silhouette Score of 0.3, Davis-Bouldins Index of 0.9 and a Calinski-Harabasz Index of 18653. 
+
+The genre classes were then mapped onto the cluster. External validation metrics were then applied to determine whether genre classes are aligned with the clusters. The metric scores are 0.019 for Normalized Mutual Information, 0.008 for Adjusted Rand Index, and 0.337 for Purity Score. The scores show that genres are not aligned with the clusters formed, making unsupervised learning, specifically mapping onto the clusters, not a good approach on prediction. 
+
+However, analysis on the clustering of the visual features along with the ratings and year shows some noticeable relationships, indicating clustering as a potential method for identifying patterns. Future research could other richer feature extractions from computer vision such as histograms, texture, etc. Other research could focus more on hybrid approaches such as doing multiple correspondence analysis (mca) on categorical data such as genre, alongside the PCA from the numerical data.
+
+\begin{thebibliography}{00}
+\bibitem{b1} Y. Kim and S. Ross, “Searching for Ground Truth: A Stepping Stone in Automating Genre Classification,” in Digital Libraries: Research and Development, Berlin, Heidelberg: Springer Berlin Heidelberg, pp. 248–261. doi: 10.1007/978-3-540-77088-624.
+\bibitem{b2} “Visual Aesthetics,” Fiveable Inc. Accessed: Feb. 21, 2025. [Online]. Available: https://library.fiveable.me/key-terms/introduction-to-film-theory/visual-aesthetics  
+\bibitem{b3} T. R. Andika and L. A. Wulandhari, “Film Genre Classification Based on Poster Using Convolutional Neural Network,” 2024.
+\bibitem{b4} W.-T. Chu and H.-J. Guo, “Movie Genre Classification based on Poster Images with Deep Neural Networks,” in Proceedings of the Workshop on Multimodal Understanding of Social, Affective and Subjective Attributes, New York, NY, USA: ACM, Oct. 2017, pp. 39–45. doi: 10.1145/3132515.3132516.
+\bibitem{b5} M. Ivasic-Kos, M. Pobar, and L. Mikec, “Movie posters classification into genres based on low-level features,” in 2014 37th International Convention on Information and Communication Technology, Electronics and Microelectronics (MIPRO), IEEE, May 2014, pp. 1198–1203. doi: 10.1109/MIPRO.2014.6859750.  
+\bibitem{b6} Ahmed Korai, M., Hussain Bouk, A., and Hameed Sindhi, A. (2021). Movie Genre Classification from RGB Movie Poster Image Using Deep Feed-forward Network. Yanbu Journal of Engineering and Science, 18(1). https://doi.org/10.53370/001c.29615
+\bibitem{b7} S. Joshi, “What is Clustering in Machine Learning: Types and Methods.” Accessed: Feb. 20, 2025. [Online]. Available: https://www.analytixlabs.co.in/blog/types-of-clustering-algorithms/
+\bibitem{b8} “IMDB Dataset.” Accessed: Feb. 22, 2025. [Online]. Available: https://datasets.imdbws.com/
+  
+  
+\end{thebibliography}
+
+
+\end{document}
