@@ -73,6 +73,10 @@ small **SQLite** file that the app creates automatically on first launch.
 
 ### Installation
 
+> **Requires Java 17+ — this is a JAR, not an installer.** There is nothing to install:
+> you download a file and run it with Java. If you don't have Java 17 or newer, install it
+> first from [Adoptium](https://adoptium.net/).
+
 1. Download `dama.jar` from the [Releases](../../releases) page.
 2. Run it:
    ```sh
