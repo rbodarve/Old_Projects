@@ -1,0 +1,185 @@
+/*
+   HISTORICAL NOTE: the code snippet below is the ORIGINAL, pre-refactor design,
+   from when the project was still named "Checkers" (hence CheckersData / CheckersMove).
+   Its scoring (e.g. "+1 per capture") was later simplified and is SUPERSEDED by the
+   ADDENDUM at the bottom of this file, which describes what Dama.java actually does.
+   Kept only as a record of the original intent.
+
+updated doMakeMove(),  makeMove() and doResign() methods para sa point system
+	*each capture +1 point
+	*each move mandatory +1 point (including captures) but consecutive captures only count as + 1point
+	*'king' +5points implementation included
+	*+10points if mag-resign ang kalaban
+
+//Global Variables
+public int P1points = 0;
+public int P1moves = 0;
+public int P2points = 0;
+public int P2moves = 0;
+public static boolean redKingFlag = false;
+public static boolean blackKingFlag = false;
+*/
+
+void doResign(){
+	if(gameInProgress == false){
+		message.setText("There is no game in progress!");
+		return;
+	}
+	if(currentPlayer == CheckersData.RED){
+		P2points+=10;
+		gameOver(player1 + " resigns.  " + player2 + " wins.");
+	}
+	else{
+		P1points+=10;
+		gameOver(player2 + " resigns.  " + player1 + " wins.");
+	}
+}
+
+
+void doMakeMove(CheckersMove move){
+	board.makeMove(move);
+	if(move.isJump()){
+		legalMoves = board.getLegalJumpsFrom(currentPlayer,move.toRow,move.toCol);
+		if(legalMoves != null){
+			if(currentPlayer == CheckersData.RED){
+				if(redKingFlag==true){
+					redKingFlag=false;
+					P1points+=5;
+					System.out.println(player1 + " King!");
+				}
+				P1points++;
+				message.setText(player1 + ":  You must continue jumping.");
+				System.out.println(player1 + "|| points: " + P1points + " moves: " + P1moves);
+			}
+			else{
+				if(blackKingFlag==true){
+					blackKingFlag=false;
+					P2points+=5;
+					System.out.println(player2 + " King!");
+				}
+				P2points++;
+				message.setText(player2 + ":  You must continue jumping.");
+				System.out.println(player2 + "|| points: " + P2points + " moves: " + P2moves);
+			}
+			selectedRow = move.toRow;
+			selectedCol = move.toCol;
+			repaint();
+			return;
+		}
+	}
+	if(currentPlayer == CheckersData.RED){
+		currentPlayer = CheckersData.BLACK;
+		legalMoves = board.getLegalMoves(currentPlayer);
+		if(legalMoves == null)
+			gameOver(player2 + " has no moves.  " + player1 + " wins.");
+		else if(legalMoves[0].isJump()){
+			message.setText(player2 + ":  Make your move.  You must jump.");
+			P2points++;
+			if(blackKingFlag==true){
+				blackKingFlag=false;
+				P2points+=5;
+				System.out.println(player2 + " King!");
+			}
+			P1moves++;
+			System.out.println(player1 + "|| points: " + P1points + " moves: " + P1moves);
+		}
+		else{
+			message.setText(player2 + ":  Make your move.");
+			if(blackKingFlag==true){
+				blackKingFlag=false;
+				P2points+=5;
+				System.out.println(player2 + " King!");
+			}
+			P1moves++;
+			System.out.println(player1 + "|| points: " + P1points + " moves: " + P1moves);
+		}
+	}
+	else{
+		currentPlayer = CheckersData.RED;
+		legalMoves = board.getLegalMoves(currentPlayer);
+		if(legalMoves == null)
+			gameOver(player1 + " has no moves.  " + player2 +" wins.");
+		else if(legalMoves[0].isJump()){
+			message.setText(player1 + ":  Make your move.  You must jump.");
+			P1points++;
+			if(redKingFlag==true){
+				redKingFlag=false;
+				P1points+=5;
+				System.out.println(player1 + " King!");
+			}
+			P2moves++;
+			System.out.println(player2 + "|| points: " + P2points + " moves: " + P2moves);
+		}
+		else{
+			message.setText(player1 + ":  Make your move.");
+			if(redKingFlag==true){
+				redKingFlag=false;
+				P1points+=5;
+				System.out.println(player1 + " King!");
+			}
+			P2moves++;
+			System.out.println(player2 + "|| points: " + P2points + " moves: " + P2moves);
+		}
+	}
+	selectedRow = -1;
+    if(legalMoves != null){
+		boolean sameStartSquare = true;
+		for(int i = 1; i < legalMoves.length; i++)
+		if(legalMoves[i].fromRow != legalMoves[0].fromRow || legalMoves[i].fromCol != legalMoves[0].fromCol){
+			sameStartSquare = false;
+			break;
+		}
+		if(sameStartSquare){
+			selectedRow = legalMoves[0].fromRow;
+			selectedCol = legalMoves[0].fromCol;
+		}
+	}
+	repaint();
+}
+
+void makeMove(int fromRow, int fromCol, int toRow, int toCol){
+	board[toRow][toCol] = board[fromRow][fromCol];
+	board[fromRow][fromCol] = EMPTY;
+	if(fromRow - toRow == 2 || fromRow - toRow == -2){
+		int jumpRow = (fromRow + toRow) / 2;
+		int jumpCol = (fromCol + toCol) / 2;
+		board[jumpRow][jumpCol] = EMPTY;
+	}
+	if(toRow == 0 && board[toRow][toCol] == RED){
+		board[toRow][toCol] = RED_KING;
+		redKingFlag = true;
+	}
+	if(toRow == 7 && board[toRow][toCol] == BLACK){
+		board[toRow][toCol] = BLACK_KING;
+		blackKingFlag = true;
+	}
+}
+
+
+/*
+suggestion:
+wat if dli nlng drop down ang sa high scores? joptionpane nlng.. search nlng sa vector if existing ang gi.input sa joptionpane.. pra d na ta mag.problema sa jcombobox
+*/
+
+/* ==========================================================================
+   ADDENDUM - point system as actually implemented (supersedes the notes above)
+
+   The scoring above was simplified during refactor.  The rules the code now
+   follows (see doMakeMove(), makeMove(), doResign() in Dama.java):
+
+     * +1 point per completed turn.
+         - A turn = one quiet move, OR one full capture sequence.
+         - A multi-capture chain is a SINGLE turn, so it scores +1 total,
+           NOT +1 per piece captured.  (No separate per-capture point.)
+     * +5 points when a man is promoted to king (dama) on that turn.
+     * +10 points to the opponent when a player resigns.
+     * A move is counted (P1moves/P2moves +1) once per completed turn, on the
+       same turn the +1 point is awarded (never mid-chain).
+
+   Points and king bonuses are awarded when the turn actually ends: mid-chain
+   jumps neither score nor count a move.  makeMove() returns true when it crowns a
+   man, and doMakeMove() uses that to add the king bonus as the turn ends.
+
+   "Fewest moves" record (used by High Scores > By Moves) is only set for the
+   WINNER of a game; 0 means "no record yet".
+   ========================================================================== */

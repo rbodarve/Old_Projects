@@ -1,0 +1,376 @@
+================================================================================
+FIVE THEORETICAL GAMES  --  based on the rules implemented in Dama.java
+================================================================================
+
+These are illustrative, fully-legal games (every ply checked against the code's
+rules) covering the three ways a game can be decided by this program -- a
+resignation, a draw, and a side being left with no legal move:
+
+    Game 1  -  Player 1 (RED)   wins   (by resignation)
+    Game 2  -  Player 2 (BLACK) wins   (by resignation)
+    Game 3  -  Draw
+    Game 4  -  Player 1 (RED)   wins   (by capturing every enemy piece)
+    Game 5  -  Player 2 (BLACK) wins   (by capturing every enemy piece)
+
+Two constructed positions at the end also isolate the deferred-promotion rule.
+
+--------------------------------------------------------------------------------
+BOARD, PLAYERS, AND NOTATION
+--------------------------------------------------------------------------------
+
+Board is 8x8, addressed as (row, col), row 0 at the TOP. Only the dark squares
+where (row % 2 == col % 2) are playable (see DamaData.setUpGame).
+
+  * Player 1 = RED  (r). Starts on rows 5-7. Moves UP the board (row decreases).
+  * Player 2 = BLACK(b). Starts on rows 0-2. Moves DOWN the board (row increases).
+  * RED moves first (doNewGame sets currentPlayer = RED).
+
+Initial position:
+
+      c0 c1 c2 c3 c4 c5 c6 c7
+ r0 |  b  .  b  .  b  .  b  . |   <- BLACK (Player 2) home rank (row 0)
+ r1 |  .  b  .  b  .  b  .  b |
+ r2 |  b  .  b  .  b  .  b  . |
+ r3 |  .  -  .  -  .  -  .  - |     -  = empty playable square
+ r4 |  -  .  -  .  -  .  -  . |     .  = non-playable (light) square
+ r5 |  .  r  .  r  .  r  .  r |
+ r6 |  r  .  r  .  r  .  r  . |
+ r7 |  .  r  .  r  .  r  .  r |   <- RED (Player 1) home rank (row 7)
+
+Move notation:
+    (5,5)->(4,4)                 a simple (non-capturing) move
+    (4,4)x(3,3)->(2,2)           a jump; the piece at the midpoint (3,3) is captured
+    ...x(3,1)->(4,0)             continuation of a multi-jump (same turn)
+    =K                           the piece is crowned a King on this square
+
+--------------------------------------------------------------------------------
+RULES IN PLAY (as coded)
+--------------------------------------------------------------------------------
+
+  This program implements FILIPINO DAMA (not American checkers):
+
+  * Man movement: an ordinary man moves one square diagonally FORWARD only
+    (RED up, BLACK down).  See immediateMoves.
+  * Man capture: a man captures an adjacent enemy in ANY diagonal direction --
+    forward OR backward -- landing on the empty square just beyond it.  Backward
+    capture is a real Dama rule, not a checkers rule.  See immediateCaptures. See A.1.
+  * Flying kings: once crowned, a king slides any number of empty squares along a
+    diagonal, and captures by flying over the first enemy on a diagonal (only empty
+    squares in between) to land on ANY empty square beyond it.  See immediateMoves /
+    immediateCaptures (king branch).
+  * Mandatory capture: if any capture is available, the side to move MUST capture
+    (getLegalMoves returns only captures when captures exist).
+  * MAXIMUM capture: among the available captures you MUST play a sequence that
+    captures the greatest number of pieces; only the first steps of a longest
+    sequence are offered (getLegalMoves / getLegalJumpsFrom rank chains by length
+    via maxCaptures).
+  * Multi-jump: after a capture, if the same piece can capture again it MUST
+    continue, all in one turn (doMakeMove loops via getLegalJumpsFrom).
+  * Deferred promotion (A.2): reaching the back row crowns the piece AND ends the
+    turn -- UNLESS that landing was a jump and a further capture is available from
+    that square AS A MAN, in which case the piece stays a man and keeps jumping,
+    only crowning if it finally STOPS on the back row (makeMove).  Promotion ends
+    the turn: a man crowned by a jump does NOT continue capturing as a king in the
+    same move (doMakeMove's justPromoted guard).
+  * A game ends when the player to move has no legal move (getLegalMoves == null,
+    a loss), OR by the Resign button, OR by the Draw button.
+
+  (The examples below use only men, never kings, so they do not exercise flying-king
+  moves.  Games 1-3 use single forced captures; Games 4-5 show a forced maximum-capture
+  chain, but none present a CHOICE between capture sequences of different lengths.
+  Every ply is still legal under the rules above.)
+
+SCORING (the corrected point system)
+  * +1 to the mover for each completed turn (a simple move, a single capture, or a
+    whole multi-jump chain -- a chain still counts as one move / +1).
+  * +5 to the mover on the turn a piece is crowned King.
+  * +10 to the OPPONENT when a player resigns (doResign).
+  * A draw awards no bonus (gameDraw).
+  * P1moves / P2moves count one per completed turn for that player.
+
+================================================================================
+GAME 1  --  PLAYER 1 (RED) WINS   (by a winning multi-jump, then BLACK resigns)
+================================================================================
+
+Ply  Player  Move                              Notes
+---  ------  --------------------------------  -----------------------------------
+ 1   RED     (5,5)->(4,4)                       develop; no jump available
+ 2   BLACK   (2,0)->(3,1)                       develop
+ 3   RED     (6,6)->(5,5)                       waiting move; still no jump forced
+ 4   BLACK   (2,2)->(3,3)                       vacates (2,2) -- a blunder: it now
+                                                 gives RED a forced double-jump
+ 5   RED     (4,4)x(3,3)->(2,2)x(3,1)->(4,0)    FORCED multi-jump, TWO captures.
+                                                 2nd leg (2,2)->(4,0) is a BACKWARD
+                                                 capture (allowed, A.1). Whole chain
+                                                 = one move = +1. BLACK now down 2.
+ 6   BLACK   resigns                            It is BLACK's turn; BLACK clicks
+                                                 Resign -> Player 1 (RED) wins,
+                                                 Player 1 gets +10 (doResign).
+
+Position just before BLACK resigns (RED = 12 men, BLACK = 10 men):
+
+      c0 c1 c2 c3 c4 c5 c6 c7
+ r0 |  b  .  b  .  b  .  b  . |
+ r1 |  .  b  .  b  .  b  .  b |
+ r2 |  -  .  -  .  b  .  b  . |
+ r3 |  .  -  .  -  .  -  .  - |
+ r4 |  r  .  -  .  -  .  -  . |   (RED man that just landed on (4,0))
+ r5 |  .  r  .  r  .  r  .  r |
+ r6 |  r  .  r  .  r  .  -  . |
+ r7 |  .  r  .  r  .  r  .  r |
+
+Running score:
+    turn 1 RED   +1   -> P1 = 1   (P1moves 1)
+    turn 2 BLACK +1   -> P2 = 1   (P2moves 1)
+    turn 3 RED   +1   -> P1 = 2   (P1moves 2)
+    turn 4 BLACK +1   -> P2 = 2   (P2moves 2)
+    turn 5 RED   +1   -> P1 = 3   (P1moves 3)   (multi-jump chain = a single +1)
+    resign       +10  -> P1 = 13
+    ---------------------------------------------------------------------
+    FINAL:  P1 = 13 points, 3 moves    P2 = 2 points, 2 moves    RED WINS
+
+Stats written (player1win): both gamesplayed +1; RED gameswin +1, totalpoints +13,
+highestpoint = 13 (vs BLACK), fewestmoves = 3 (first win record); BLACK gameslose +1,
+totalpoints +2, highestpoint = 2.
+
+================================================================================
+GAME 2  --  PLAYER 2 (BLACK) WINS   (a winning backward multi-jump, then RED resigns)
+================================================================================
+
+Ply  Player  Move                              Notes
+---  ------  --------------------------------  -----------------------------------
+ 1   RED     (5,5)->(4,4)                       develop; no jump available
+ 2   BLACK   (2,4)->(3,3)                        develop. Note it comes from (2,4),
+                                                 leaving (2,2) occupied, so RED's man
+                                                 on (4,4) CANNOT jump (3,3) (landing
+                                                 (2,2) is blocked) -- RED is not forced.
+ 3   RED     (5,7)->(4,6)                        a blunder: RED now has men on (4,4)
+                                                 and (4,6) with (5,5)/(5,7) empty behind
+ 4   BLACK   (3,3)x(4,4)->(5,5)x(4,6)->(3,7)     FORCED multi-jump, TWO captures.
+                                                 2nd leg (5,5)->(3,7) is a BACKWARD
+                                                 capture (BLACK moving up; allowed, A.1).
+                                                 Whole chain = one move = +1. RED down 2.
+ 5   RED     resigns                            It is RED's turn; down two men, RED
+                                                 clicks Resign -> Player 2 (BLACK) wins,
+                                                 Player 2 gets +10 (doResign).
+
+Position just before RED resigns (RED = 10 men, BLACK = 12 men):
+
+      c0 c1 c2 c3 c4 c5 c6 c7
+ r0 |  b  .  b  .  b  .  b  . |
+ r1 |  .  b  .  b  .  b  .  b |
+ r2 |  b  .  b  .  -  .  b  . |   (2,4) is empty -- that man is the one now on (3,7)
+ r3 |  .  -  .  -  .  -  .  b |   (BLACK man that ended the jump on (3,7))
+ r4 |  -  .  -  .  -  .  -  . |
+ r5 |  .  r  .  r  .  -  .  - |   (5,5) and (5,7) empty
+ r6 |  r  .  r  .  r  .  r  . |
+ r7 |  .  r  .  r  .  r  .  r |
+
+Running score:
+    turn 1 RED   +1   -> P1 = 1   (P1moves 1)
+    turn 2 BLACK +1   -> P2 = 1   (P2moves 1)
+    turn 3 RED   +1   -> P1 = 2   (P1moves 2)
+    turn 4 BLACK +1   -> P2 = 2   (P2moves 2)   (multi-jump chain = a single +1)
+    resign       +10  -> P2 = 12
+    ---------------------------------------------------------------------
+    FINAL:  P2 = 12 points, 2 moves    P1 = 2 points, 2 moves    BLACK WINS
+
+Stats written (player2win): both gamesplayed +1; BLACK gameswin +1, totalpoints +12,
+highestpoint = 12 (vs RED), fewestmoves = 2 (first win record); RED gameslose +1,
+totalpoints +2, highestpoint = 2.
+
+================================================================================
+GAME 3  --  DRAW   (an even exchange, then the players agree to a draw)
+================================================================================
+
+Ply  Player  Move                              Notes
+---  ------  --------------------------------  -----------------------------------
+ 1   RED     (5,3)->(4,2)                       develop
+ 2   BLACK   (2,2)->(3,3)                        develop
+ 3   RED     (5,5)->(4,4)                        develop; no jump forced yet
+ 4   BLACK   (3,3)x(4,4)->(5,5)                  FORCED: BLACK must take the man on
+                                                 (4,4) (mandatory capture). +1.
+ 5   RED     (6,6)x(5,5)->(4,4)                  FORCED recapture. Material is even
+                                                 again (11 men each). +1.
+ 6   BLACK   offers Draw                         Position is balanced; BLACK clicks
+                                                 Draw -> the game ends in a draw
+                                                 (gameDraw). No point bonus.
+
+Position at the draw agreement (RED = 11 men, BLACK = 11 men):
+
+      c0 c1 c2 c3 c4 c5 c6 c7
+ r0 |  b  .  b  .  b  .  b  . |
+ r1 |  .  b  .  b  .  b  .  b |
+ r2 |  b  .  -  .  b  .  b  . |
+ r3 |  .  -  .  -  .  -  .  - |
+ r4 |  -  .  r  .  r  .  -  . |   (RED men on (4,2) and (4,4))
+ r5 |  .  r  .  -  .  -  .  r |
+ r6 |  r  .  r  .  r  .  -  . |
+ r7 |  .  r  .  r  .  r  .  r |
+
+Running score:
+    turn 1 RED   +1   -> P1 = 1   (P1moves 1)
+    turn 2 BLACK +1   -> P2 = 1   (P2moves 1)
+    turn 3 RED   +1   -> P1 = 2   (P1moves 2)
+    turn 4 BLACK +1   -> P2 = 2   (P2moves 2)   (a capture is still just one move)
+    turn 5 RED   +1   -> P1 = 3   (P1moves 3)   (recapture, one move)
+    draw         +0
+    ---------------------------------------------------------------------
+    FINAL:  P1 = 3 points, 3 moves    P2 = 2 points, 2 moves    DRAW
+
+Stats written (gameDraw): both gamesplayed +1 and gamesdraw +1; RED totalpoints +3,
+highestpoint = 3; BLACK totalpoints +2, highestpoint = 2. A draw is NOT a win, so it
+sets no "fewest moves to win" record for either player (C.9).
+
+================================================================================
+GAME 4  --  PLAYER 1 (RED) WINS   (by capturing ALL of Player 2's pieces)
+================================================================================
+
+Games 1-3 ended by resignation or a draw; Games 4 and 5 show the third outcome
+the code detects on its own: a side that loses its LAST piece has no legal move,
+so getLegalMoves returns null and gameOver declares the other player the winner.
+
+These two are CONSTRUCTED positions (like the promotion examples below), not played
+from the opening, and the moves are not meant to be strategically sensible -- they
+just illustrate a legal win by total capture.  Every ply was verified against the
+engine (mandatory + maximum capture forces the whole chain).
+
+Starting position (all other squares empty).  RED to move:
+
+      c0 c1 c2 c3 c4 c5 c6 c7
+ r0 |  .  .  .  .  .  .  .  . |
+ r1 |  .  .  .  .  .  .  .  . |
+ r2 |  -  .  r  .  -  .  -  . |   RED man on (2,2)
+ r3 |  .  b  .  b  .  -  .  - |   BLACK men on (3,1) and (3,3)
+ r4 |  -  .  -  .  -  .  -  . |
+ r5 |  .  b  .  b  .  -  .  - |   BLACK men on (5,1) and (5,3)
+ r6 |  -  .  -  .  -  .  -  . |
+ r7 |  .  .  .  .  .  .  .  . |
+
+Ply  Player  Move                                          Notes
+---  ------  ----------------------------------------      ---------------------
+ 1   RED     (2,2)x(3,3)->(4,4)x(5,3)->(6,2)               ONE forced maximum
+             x(5,1)->(4,0)x(3,1)->(2,2)                    capture, FOUR pieces.
+                                                            Legs 1 and 2 are
+                                                            BACKWARD captures
+                                                            (allowed, A.1).  The
+                                                            man loops back to
+                                                            (2,2); not the back
+                                                            row, so no King.
+                                                            Whole chain = +1.
+
+After the chain BLACK has 0 pieces.  It becomes BLACK's turn, getLegalMoves(BLACK)
+== null, so: "Player 2 has no moves.  Player 1 wins." (player1win).
+
+Final position (RED = 1 man on (2,2), BLACK = 0):
+
+      c0 c1 c2 c3 c4 c5 c6 c7
+ r0 |  .  .  .  .  .  .  .  . |
+ r1 |  .  .  .  .  .  .  .  . |
+ r2 |  -  .  r  .  -  .  -  . |   the lone RED man, back where it started
+ r3 |  .  -  .  -  .  -  .  - |
+ r4 |  -  .  -  .  -  .  -  . |
+ r5 |  .  -  .  -  .  -  .  - |
+ r6 |  -  .  -  .  -  .  -  . |
+ r7 |  .  .  .  .  .  .  .  . |
+
+Running score:
+    turn 1 RED   +1   -> P1 = 1   (P1moves 1)   (a 4-capture chain is one move)
+    ---------------------------------------------------------------------
+    FINAL:  P1 = 1 point, 1 move    P2 = 0 points, 0 moves    RED WINS
+
+Stats written (player1win): both gamesplayed +1; RED gameswin +1, totalpoints +1,
+highestpoint = 1 (vs BLACK), fewestmoves = 1 (first win record); BLACK gameslose +1.
+
+================================================================================
+GAME 5  --  PLAYER 2 (BLACK) WINS   (by capturing ALL of Player 1's pieces)
+================================================================================
+
+The mirror image of Game 4.  Constructed position, all other squares empty.
+BLACK to move:
+
+      c0 c1 c2 c3 c4 c5 c6 c7
+ r0 |  .  .  .  .  .  .  .  . |
+ r1 |  .  .  .  .  .  .  .  . |
+ r2 |  -  .  -  .  r  .  r  . |   RED men on (2,4) and (2,6)
+ r3 |  .  -  .  -  .  -  .  - |
+ r4 |  -  .  -  .  r  .  r  . |   RED men on (4,4) and (4,6)
+ r5 |  .  -  .  -  .  b  .  - |   BLACK man on (5,5)
+ r6 |  -  .  -  .  -  .  -  . |
+ r7 |  .  .  .  .  .  .  .  . |
+
+Ply  Player  Move                                          Notes
+---  ------  ----------------------------------------      ---------------------
+ 1   BLACK   (5,5)x(4,4)->(3,3)x(2,4)->(1,5)               ONE forced maximum
+             x(2,6)->(3,7)x(4,6)->(5,5)                    capture, FOUR pieces.
+                                                            Legs 1 and 2 are
+                                                            BACKWARD captures for
+                                                            BLACK (allowed, A.1).
+                                                            The man loops back to
+                                                            (5,5); not the back
+                                                            row, so no King.
+                                                            Whole chain = +1.
+
+After the chain RED has 0 pieces.  It becomes RED's turn, getLegalMoves(RED) ==
+null, so: "Player 1 has no moves.  Player 2 wins." (player2win).
+
+Final position (BLACK = 1 man on (5,5), RED = 0):
+
+      c0 c1 c2 c3 c4 c5 c6 c7
+ r0 |  .  .  .  .  .  .  .  . |
+ r1 |  .  .  .  .  .  .  .  . |
+ r2 |  -  .  -  .  -  .  -  . |
+ r3 |  .  -  .  -  .  -  .  - |
+ r4 |  -  .  -  .  -  .  -  . |
+ r5 |  .  -  .  -  .  b  .  - |   the lone BLACK man, back where it started
+ r6 |  -  .  -  .  -  .  -  . |
+ r7 |  .  .  .  .  .  .  .  . |
+
+Running score:
+    turn 1 BLACK +1   -> P2 = 1   (P2moves 1)   (a 4-capture chain is one move)
+    ---------------------------------------------------------------------
+    FINAL:  P2 = 1 point, 1 move    P1 = 0 points, 0 moves    BLACK WINS
+
+Stats written (player2win): both gamesplayed +1; BLACK gameswin +1, totalpoints +1,
+highestpoint = 1 (vs RED), fewestmoves = 1 (first win record); RED gameslose +1.
+
+================================================================================
+PROMOTION EXAMPLES (rule A.2)  --  two constructed positions, not from the opening
+================================================================================
+
+The interlocked starting formation makes a King impossible to earn this early, so
+these are small set-up positions (all other squares empty) that isolate the rule.
+
+--------------------------------------------------------------------------------
+Example A  --  a jump that STOPS on the back row: the piece crowns, turn ends.
+--------------------------------------------------------------------------------
+
+      c0 c1 c2 c3 c4 c5 c6 c7
+ r5 |  .  -  .  -  .  b  .  - |   BLACK man on (5,5)
+ r6 |  -  .  -  .  -  .  r  . |   RED man on (6,6)
+ r7 |  .  -  .  -  .  -  .  - |   (7,7) empty     (all other squares empty)
+
+BLACK to move:  (5,5)x(6,6)->(7,7)=K
+
+At (7,7) there is no further capture, so the man is crowned a King and the turn
+ends. Score to BLACK: +1 (the move) and +5 (the King) = +6.
+
+--------------------------------------------------------------------------------
+Example B  --  the exception: a jump PASSES OVER the back row and keeps capturing,
+               so promotion is SKIPPED and the piece stays a man.
+--------------------------------------------------------------------------------
+
+      c0 c1 c2 c3 c4 c5 c6 c7
+ r5 |  .  -  .  -  .  b  .  - |   BLACK man on (5,5)
+ r6 |  -  .  r  .  r  .  -  . |   RED men on (6,2) and (6,4)
+ r7 |  .  -  .  -  .  -  .  - |   (7,3) empty, (5,1) empty   (all other squares empty)
+
+BLACK to move:  (5,5)x(6,4)->(7,3) ... x(6,2)->(5,1)
+
+The first leg lands on (7,3) -- the back row -- but a further capture is available
+from there, so (per A.2) the piece does NOT crown; it stays a man and MUST keep
+jumping: (7,3)x(6,2)->(5,1). It finishes on (5,1), which is not the back row, so it
+remains an ORDINARY MAN (no King). Score to BLACK: +1 for the move (a multi-jump
+chain is still one move), and NO King bonus.
+
+================================================================================

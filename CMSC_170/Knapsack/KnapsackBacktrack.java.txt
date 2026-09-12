@@ -1,0 +1,70 @@
+//package teneyck.backtrackstuff;
+import java.util.*;
+
+public class KnapsackBacktrack {
+  private double maxValue;
+  private double K;   //capacity 
+  private double [ ] s;
+  private double [ ] v;
+  private List bestList;
+  private int numItems;
+  
+  public KnapsackBacktrack(double capacity, double [ ] size, double [ ] value,int n) {
+    maxValue = 0.0;
+    K = capacity;
+    s = size;
+    v = value;
+    numItems = n;
+    bestList = null;
+  }
+  
+  private void knapsack(int index, double currentSize, double currentValue, 
+                        List cList) {
+    if (currentSize <= K && currentValue > maxValue) {
+      maxValue = currentValue;
+      bestList = new LinkedList(cList);
+    }
+    if (promising(index, currentSize, currentValue)){
+      List leftList = new LinkedList(cList);
+      leftList.add(new Integer(index+1));
+      knapsack(index + 1,currentSize+s[index+1],currentValue+v[index+1],leftList);
+      List rightList = new LinkedList(cList);
+      knapsack(index + 1,currentSize, currentValue, rightList);
+    }
+  }
+  
+  private boolean promising(int item, double size, double value) {
+    double bound = value;
+    int k = item + 1;
+    double totalSize = size;
+    if (size > K) return false;
+    while (k < numItems && totalSize + s[k] < K) {
+      totalSize += s[k];
+      bound += v[k];
+      k++;
+    }
+    if (k < numItems)
+      bound += (K - totalSize) * (v[k]/s[k]);
+    return bound > maxValue; 
+  }
+  public void findSolution ( ) {
+    List currentList = new LinkedList( );
+    knapsack(0, 0.0, 0.0, currentList);
+    System.out.print("The solution set is: ");
+    for (int i = 0; i < bestList.size( ); i++) {
+      System.out.print("  "+bestList.get(i));
+    }
+    System.out.println( );
+    System.out.println("The value contained is: $ "+ maxValue);
+  }
+  public static void main(String [ ] args) {
+    double [ ] sizes = {0.0, 3.0, 5.0, 9.0, 5.0};
+    double [ ] values = {0.0, 45.0, 30.0, 45.0, 10.0};
+    KnapsackBacktrack nappy = new KnapsackBacktrack(16.0, sizes, values, 5);
+    nappy.findSolution( );
+  }
+      
+      
+}
+     
+      

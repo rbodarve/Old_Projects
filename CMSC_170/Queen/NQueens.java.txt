@@ -1,0 +1,52 @@
+//package teneyck.backtrackstuff;
+
+public class NQueens {
+  private int[ ] columns;
+  private int N;
+  private int solutions;
+  public NQueens(int size) {
+    N = size;
+    columns = new int[size];
+    solutions = 0;
+  }
+  private void placeQueen(int row) {
+    if (promising(row) ) {
+      if (row == N - 1) {
+        //print out result
+        System.out.print("Solution found: ");
+        for (int i = 0; i < N; i++)
+          System.out.print("  "+columns[i]);
+        System.out.println( );
+        solutions++;
+      }
+      else 
+        for (int j = 0; j < N; j++) {
+          columns[row + 1] = j;
+          placeQueen(row+1);
+        }
+    }
+  }
+  private boolean promising(int index) {
+    boolean flag = true;
+    for (int k = 0; k < index; k++) 
+      if (columns[index] == columns[k] || 
+          Math.abs(columns[index] - columns[k]) == index - k)
+        flag = false;
+    return flag;
+  }
+  public void placeNQueens( ) {
+    for (int i = 0; i < N; i++) {
+      columns[0] = i;
+      placeQueen(0);
+    }
+    System.out.println("Number of solutions: "+solutions);
+  }
+  public static void main(String[ ] args) {
+    NQueens n4 = new NQueens(4);
+    n4.placeNQueens( );
+    NQueens n5 = new NQueens(5);
+    n5.placeNQueens( );
+    NQueens n8 = new NQueens(8);
+    n8.placeNQueens( );
+  }
+}

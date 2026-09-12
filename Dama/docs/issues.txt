@@ -1,0 +1,73 @@
+================================================================================
+KNOWN ISSUES  --  Dama (src/main/java/Dama.java)
+================================================================================
+
+Remaining issues found during review, after the correctness/robustness fixes were
+applied.  None are severe: the app compiles cleanly and has no known crashes or
+scoring errors.  Items are grouped by area and roughly ordered by priority within
+each group.
+
+--------------------------------------------------------------------------------
+GAME LOGIC & DESIGN
+--------------------------------------------------------------------------------
+
+1. By Points leaderboard isn't filtered, but By Moves is (inconsistency).
+   byPointsScores() queries "... order by highestpoint DESC" with NO WHERE clause,
+   while byMovesScores() uses "where fewestmoves > 0".  So a brand-new player who
+   has never played shows up in By Points with 0 / n/a, but is correctly hidden
+   from By Moves.  They should behave the same -- By Points likely wants
+   "where highestpoint > 0" (or "gamesplayed > 0").
+
+2. No automatic draw / stalemate detection.
+   A game ends only by no-legal-move, Resign, or the Draw button.  There is no
+   threefold-repetition, no-progress, or king-shuffle rule, so two kings can in
+   principle move forever.  Acceptable for a hot-seat game, but a design limitation.
+
+3. "By Points" / "By Moves" silently cap at the top 3 (the i<3 loop guard).
+   Reasonable as a leaderboard, but it is an undocumented hard limit.
+
+4. Loser can still set a "highest point" record, and the opponentpoint /
+   opponentmoves columns store the opponent's NAME (surfaced honestly via the
+   "Opponent (Pts)" / "Opponent (Moves)" headers).  By design -- noted so it stays
+   a conscious choice, not an oversight.
+
+--------------------------------------------------------------------------------
+UI / UX DESIGN
+--------------------------------------------------------------------------------
+
+5. Draw-offer X ambiguity (minor; relevant now that X is enabled on all prompts).
+   In doDraw(), the offer is marked "spent" before the opponent's accept/decline
+   prompt.  If the opponent clicks the title-bar X instead of Yes/No, hideOverlay()
+   just returns to the game -- the offer is consumed but neither accepted nor
+   declined, and play silently continues.  No crash, but a confusing state.
+   Tightening it (treat X as "decline", or suppress X on the two draw prompts)
+   would be cleaner.
+
+6. The board shows a fully set-up position while gameInProgress is false.
+   doNewGame() calls setUpGame() immediately, so after clicking New Game (before
+   picking players) -- and now after cancelling setup with X -- you see a complete
+   board that can't be clicked ("Click New Game to start").  A blank/dimmed board
+   until play begins would read better.
+
+7. Can't abandon an in-progress game to start a fresh one except via Resign/Draw
+   (New Game is disabled mid-game).  Minor; largely intentional.
+
+8. Residual low-contrast text: the green Serif message label and the pinkish
+   p1Score both sit on the dark-red (69,0,0) background.  The board itself is fine
+   now, but these two labels are still a bit muddy.
+
+--------------------------------------------------------------------------------
+CODE CLEANLINESS (not bugs)
+--------------------------------------------------------------------------------
+
+9. Dead code in purge() -- the two commented-out clear() lines.  Safe to delete.
+
+10. JDBC runs on the EDT (databaseConnect + every query).  Fine for a local SQLite
+    file, but technically blocking work on the UI thread.
+
+--------------------------------------------------------------------------------
+SUGGESTED PRIORITY
+--------------------------------------------------------------------------------
+
+  Quick wins:  #1 (one-line WHERE fix) and #5 (draw-offer X edge).
+  The rest are design limitations or cosmetics.

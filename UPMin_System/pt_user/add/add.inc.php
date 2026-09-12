@@ -1,0 +1,470 @@
+<?php
+$unit="pt_user";
+$task="saveTraining";
+$go="add";
+
+include_once("classes/middletier/pt/training.class_user.php");
+?>
+
+<div id="wrapper">
+<script type="text/javascript">
+
+	function checkEntry()
+	{
+		var training_title=document.getElementById('training_title').value;
+		var start_date=document.getElementById('start_date').value;
+		var end_date=document.getElementById('end_date').value;
+		var loc=document.getElementById('loc').value;
+		var city=document.getElementById('city').value;
+		var organizer=document.getElementById('organizer').value;
+		var typ=document.getElementById('typ').value;
+		var descr=document.getElementById('descr').value;
+		var budget_allocated=document.getElementById('budget_allocated').value;
+		var budget_actual=document.getElementById('budget_actual').value;
+		var nature=document.getElementById('nature').value;
+		var cert=document.getElementById('file').value;
+		
+		if(training_title=='')
+		{
+			alert("No TRAINING TITLE!");
+			return false;
+		}
+		if(start_date=='')
+		{
+			alert("No START DATE!");
+			return false;
+		}
+		if(end_date=='')
+		{
+			alert("No END DATE!");
+			return false;
+		}
+		if(loc=='')
+		{
+			alert("No LOCATION!");
+			return false;
+		}
+		if(city=='')
+		{
+			alert("No CITY!");
+			return false;
+		}
+		if(organizer=='')
+		{
+			alert("No Training ORGANIZER(S)!");
+			return false;
+		}
+		if(type=='')
+		{
+			alert("No Training TYPE!");
+			return false;
+		}
+		if(descr=='')
+		{
+			alert("No Training Description!");
+			return false;
+		}
+		if(budget_allocated=='')
+		{
+			alert("No Actual Allocated!");
+			return false;
+		}
+		if(budget_actual=='')
+		{
+			alert("No Actual Budget!");
+			return false;
+		}
+		if(nature=='')
+		{
+			alert("Input INVALID: Nature of Participation!");
+			return false;
+		}
+		
+		return true;
+		
+	}
+	
+	function check(){
+		var training_id=document.getElementById('training_id').value;
+		var nature=document.getElementById('nature').value;
+			
+		if(training_id=='')
+		{
+			alert("No TRAINInG Chosen!");
+			return false;
+		}
+		if(nature=='')
+		{
+			alert("Input INVALID: Nature of Participation!");
+			return false;
+		}
+		return true;
+	}
+
+</script>	
+ 
+ 
+ 
+  <div id="page">
+	 <!--GOLD BOX TEMPLATE STARTS HERE -->
+			<div id="greenbox"><!-- GOLD box template!   -->
+					<div class="box-outer">	
+							<div class="box-title"> <!-- this is fixed! Dont make any changes here!   -->
+		   						<div class="box-center">		   
+									<div class="box-left">
+									</div>										
+									<div class="box-right">
+									</div>											
+									<div align="center">
+										<div class="title"> <!-- put your header name here   -->
+											Trainings
+										</div>
+									</div>
+								</div>
+								<div class="clear"></div>		
+							</div>	
+						<div class="content"> <!-- put your content here   -->																
+						
+							<form action="index.php?unit=<?php echo $unit;?>&go=<?php echo $go;?>&task=addfromExisting" enctype="multipart/form-data" method="POST" onsubmit="return check();">
+							<table class="form" cellpadding="0" cellspacing="0" width="100%">
+								<tbody>
+								<tr>
+									<th colspan="2">ADD FROM EXISTING TRAININGS</th>			  
+								</tr>
+									<tr>
+										<td width="23%">
+										Choose A Training
+										</td>
+										<td>
+											<select name="training_id" id="training_id">
+											<option value=""></option>
+											<?php
+												$training2=new Training();
+												$training2->loadNotMyTrainings();
+											?>
+											<?php
+												while($r=$training2->result->FetchRow())
+												{
+											?>
+												<option value='<?php echo $r['training_ID'];?>'>
+													<?php echo $r['training_title'];?>
+												</option>
+											<?php
+												}
+											?>
+											</select>
+										</td>
+									</tr>									
+									<tr>
+										<td>
+										Nature of Participation
+										</td>
+										<td>
+											<select name="nature" id="nature">
+												<option value=""></option>
+												<option value="Participant">Participant</option>
+												<option value="Resource Speaker">Resource Speaker</option>
+												<option value="Organizer">Organizer</option>
+												<option value="Sponsor">Sponsor</option>
+												<option value="Others">Others</option>
+												</select>
+											</td>
+									</tr>
+									<tr>
+										<td>
+										<label for="file">Upload Certification:</label>
+										<td>
+										<input type="file" name="uploaded" id="file"/>
+										</td>
+										</td>
+									</tr>
+								</tbody>
+							</table>
+							<div align="right">
+							<input type="submit" name="submit" value="Save">
+ 						</div>
+							</form>
+							<br>
+							
+							<form action="index.php?unit=<?php echo $unit;?>&go=<?php echo $go;?>&task=<?php echo $task;?>" enctype="multipart/form-data" method="POST" onsubmit="return checkEntry();">
+							
+							<table class="form" cellpadding="0" cellspacing="0" width="100%">
+								<tr>
+									<th colspan="2">ADD NEW TRAINING</th>		  
+								</tr>
+								</tr>
+								<tbody>
+									<tr>
+										<td width="18%"><br>
+										Title
+										</td>
+										<td><br>
+											<input type="text" name="training_title" id="training_title" value="<?php echo $training-> training_title;?>" size="50">
+											<input type="hidden" name="training_id" id="training_id" value="<?php echo $training->training_id;?>" size="50">
+										</td>
+										
+									</tr>
+									<tr>
+										<td><br>
+										Description
+										</td>
+										<td> <br>
+											<textarea name="descr" id="descr" value="<?php echo $training->descr;?>" rows="5" cols="50"><?php echo $training->descr;?></textarea>
+										</td>
+									</tr>
+									<tr>
+										<td>
+										Nature of Participation <?php $temp=$training->role;?>
+										</td>
+										<td>
+											<select name="nature" id="nature">
+												<option value=""></option>
+												<option value="Participant"
+												<?php
+													if ($temp=="Participant"){
+													echo "selected";
+												}
+												?>
+												>Participant</option>
+												<option value="Resource Speaker"
+												<?php
+													if ($temp=="Resource Speaker"){
+													echo "selected";
+												}
+												?>
+												>Resource Speaker</option>
+												<option value="Organizer"
+												<?php
+													if ($temp=="Organizer"){
+													echo "selected";
+												}
+												?>
+												>Organizer</option>
+												<option value="Sponsor"
+												<?php
+													if ($temp=="Sponsor"){
+													echo "selected";
+												}
+												?>
+												>Sponsor</option>
+												<option value="Others"
+												<?php
+													if ($temp=="Others"){
+													echo "selected";
+												}
+												?>
+												>Others</option>
+												</select>
+											</td>
+									</tr>
+									<tr>
+										<td>
+										Type
+										</td>
+										<td>
+											<select name="typ" id="typ">
+											<option value=""></option>
+											<option value='Workshop'
+												<?php
+													if ($temp=="Workshop"){
+													echo "selected";
+												}
+												?>
+												>
+												Workshop
+											</option>
+											<option value="Conference"
+												<?php
+													if ($temp=="Conference"){
+													echo "selected";
+												}
+												?>
+												>Conference</option>
+											<option 
+												value="Seminar"
+												<?php
+													if ($temp=="Seminar"){
+													echo "selected";
+												}
+												?>
+												>Seminar</option>
+											<option 
+												value="Competition"
+												<?php
+													if ($temp=="Competition"){
+													echo "selected";
+												}
+												?>
+												>Competition</option>
+											<option 
+												value="Others"
+												<?php
+													if ($temp=="Others"){
+													echo "selected";
+												}
+												?>
+												>Others</option>
+											</select>
+										</td>
+									</tr>
+									<tr>
+										<td>
+										Organizer(s)
+										</td>
+										<td>
+											<input type="text" name="organizer" id="organizer" value="<?php echo $training-> organizer;?>" size="50">
+										</td>
+									</tr>
+									<tr>
+										<td><br>
+											<u>TIME PERIOD
+										</td>
+									</tr>
+									<tr>
+										<td>
+										Start Date
+										</td>
+										<td>
+											<input type="text" name="start_date"  id="start_date" value="<?php echo $training->start_date;?>" size="8" readonly  style="text-align:center;"/>            								
+ 										<img src="js/jscalendar/icons/calendar5.gif" id="tg_start_date" title="Date selector" align="absmiddle" class="jscalimg"/>
+											<!-- Calendar setup script -->
+											<script type="text/javascript">
+						    					Calendar.setup({
+        													inputField     :    "start_date",     // id of the input field
+        													ifFormat       :    "%Y-%m-%d",      // format of the input field ifFormat       :    "%B %e, %Y",
+        													button         :    "tg_start_date",  // trigger for the calendar (button ID)
+        													align          :    "Tl",           // alignment (defaults to "Bl")
+        													singleClick    :    true
+    															});
+											</script>	
+										</td>
+										
+									</tr>
+									<tr>
+										<td>
+										End Date
+										</td>
+										<td>
+											<input type="text" name="end_date"  id="end_date" value="<?php echo $training->end_date;?>" size="8" readonly  style="text-align:center;"/>            								
+ 										<img src="js/jscalendar/icons/calendar5.gif" id="tg_end_date" title="Date selector" align="absmiddle" class="jscalimg"/>
+											<!-- Calendar setup script -->
+											<script type="text/javascript">
+						    					Calendar.setup({
+        													inputField     :    "end_date",     // id of the input field
+        													ifFormat       :    "%Y-%m-%d",      // format of the input field ifFormat       :    "%B %e, %Y",
+        													button         :    "tg_end_date",  // trigger for the calendar (button ID)
+        													align          :    "Tl",           // alignment (defaults to "Bl")
+        													singleClick    :    true
+    															});
+											</script>	
+										</td>
+										
+									</tr>
+									<tr>
+										<td>
+										<br>
+										<u>VENUE
+										</td>
+									</tr>
+									<tr>
+										<td>
+										Location
+										</td>
+										<td>
+											<input type="text" name="loc" id="loc" value="<?php echo $training-> location;?>" size="50">
+										</td>
+										
+									</tr>
+									<tr>
+										<td>
+										City
+										</td>
+										<td>
+											<input type="text" name="city" id="city" value="<?php echo $training-> city;?>" size="50">
+										</td>
+									</tr>
+					
+									
+									
+									<tr>
+										<td>
+										<br>
+										<br><u>
+										Remarks
+										</td>
+										<td>
+										<br>
+										<br>
+											<textarea  type="text" name="remarks" id="remarks" value="<?php echo $training->remarks;?>" rows="5" cols="50"> <?php echo $training->remarks;?></textarea>
+										</td>
+										
+									</tr>	
+									<tr>
+										<td>
+										<br>
+											<u><b>BUDGET</b>
+										</td>
+									</tr>
+									<tr>
+										<td>
+										<b>Budget Allocated</b>
+										</td>
+										<td>
+											<input type="text" name="budget_allocated" id="budget_allocated" value="<?php echo $budget-> budget_allocated;?>" size="20">Php
+										</td>	
+									</tr>
+									<tr>
+										<td>
+										<b>Actual Expense</b>
+										</td>
+										<td>
+											<input type="text" name="budget_actual" id="budget_actual" value="<?php echo $budget-> budget_actual;?>" size="20">Php
+										</td>
+										
+									</tr>
+									<tr>
+										<td>
+										<br>
+										<u>CERTIFICATION
+										</td>
+									</tr>
+									<tr>
+										<td>
+										<label for="file">Upload Certification:</label>
+										<td>
+										<input type="file" name="uploaded" id="file"/>
+										</td>
+										</td>
+									</tr>
+								</tbody>							
+							</table>
+							<div align="right">
+							<input type="submit" name="submit" value="Save">
+							<input type="button" name="cancel" value="Cancel"  onclick="window.location='?unit=<?php echo $unit;?>&go=<?php echo $go;?>&task=index'"> 
+ 						</div>
+							</form>
+							
+						
+							<!-- end of contents -->
+					</div>
+			</div>
+			<!--GOLD BOX TEMPLATE ENDS HERE -->
+	
+	
+	
+  </div>	
+  </div>
+  
+
+<?php
+
+if($strMsg)
+{
+?>
+<script type="text/javascript">
+alert('<?php echo $strMsg;?>');
+</script>
+<?php
+	
+}
+?>

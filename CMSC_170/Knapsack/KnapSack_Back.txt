@@ -1,0 +1,198 @@
+/*
+ * 0/1 knapsack problem:  Based on item weights and values, find
+ * the combination of items to include in the knapsack that will
+ * maximize the value, subject to a weight limitation.
+ *
+ * This uses backtracking, but only in generating the possible
+ * knapsacks --- it does not attempt to apply a forward bounding
+ * function; that is, it does not attempt to determine whether
+ * the optimal solution is possible, given the current state.
+ *
+ * Author:  Timothy Rolfe
+ *
+ * Language:  Java 5 --- Scanner
+ */
+import java.io.*;
+import java.util.Scanner;
+
+public class KnapSack_Back
+{//If DEBUG is turned on, show each new solution as discovered
+ //Then if VERBOSE is turned on, show that solution.
+   final static boolean DEBUG =  true,
+                        VERBOSE = false;
+   static int nCalls;
+
+/*
+ * Public method will call the recursive backtracking method
+ *
+ * The weight and value vectors are sorted into non-increasing
+ * value-per-weight ratios --- the first feasible solution will
+ * be the greedy solution.
+ *
+ * The recursive method needs to receive and update information
+ * on the current state and the optimal solution.  This is
+ * handled through passing arrays.
+ *
+ * current[] will hold [0] current weight, [1] current value,
+ * and [2] current MAXIMUM value;
+ *
+ * pack[] will be the boolean vector corresponding to that
+ * current MAXIMUM value.  It is received as a parameter.
+ *
+ * used[] is the scratch boolean vector used to generate the
+ * possible knapsacks.
+ */
+   public static void knapSack(int maxWt, boolean [] pack,
+                               int [] weight, int [] value)
+   {//Force the first feasible solution to be saved into pack[]
+      int[] current = { 0, 0, Integer.MIN_VALUE };
+      boolean[] used = new boolean[pack.length];
+
+   // Not really required, but it improves performance.
+      sort (weight, value);
+
+      knapSack(maxWt, used, 0, weight, value, pack, current);
+   }
+
+/*
+ * 0/1 knapsack through backtracking --- implementation
+ * to retain information about the knapsack contents.
+ *
+ * Parameters:
+ *    maxWt     --- carrying capacity of the knapsack
+ *    used[]    --- current knapsack contents
+ *    item      --- position being considered.
+ *    weight[]  --- individual weights
+ *    value[]   --- individual values
+ *    pack[]    --- retain the OPTIMAL boolean vector
+ *    current[] --- [0] current weight, [1] current value,
+ *                  and [2] current MAXIMUM value
+ */
+   static void knapSack(int maxWt, boolean [] used, int item,
+                        int [] weight, int [] value,
+                        boolean[] pack, int[] current)
+   {  nCalls++;    // Tally number of method invocations
+
+   // Check whether all positions have been considered
+      if (item == pack.length)
+      {//Do we have a winner?
+         if ( current[1] > current[2] )
+         {  if (DEBUG)
+            {  if ( current[2] < 0 )
+                  System.out.println ("First feasible solution:  " +
+                                      current[1]);
+               else
+                  System.out.println (current[1] + " replaces " +
+                                      current[2]);
+               if (VERBOSE) report(used, weight, value);
+            }
+         // Save the state for this winner
+            current[2] = current[1];
+            System.arraycopy(used, 0, pack, 0, used.length);
+         }
+      }
+      else
+      {//Are we ABLE to use one of these items?  If so, try that option
+         if ( current[0] + weight[item] <= maxWt )
+         {
+         // Set the state of using this item
+            used[item] = true;
+            current[0] += weight[item];
+            current[1] += value[item];
+            knapSack(maxWt, used, item+1, weight, value, pack, current);
+         // Then reset to not using the item
+            used[item] = false;
+            current[0] -= weight[item];
+            current[1] -= value[item];
+         }
+      // Whether we used one or not, go forward WITHOUT using one.
+         knapSack(maxWt, used, item+1, weight, value, pack, current);
+      }
+   }
+
+// Sort wt[] amd val[] together as non-increasing val[k]/wt[k]
+   static void sort ( int[] wt, int[] val )
+   {  for ( int lim = wt.length-1; lim > 0; lim-- )
+      {  int max = 0;
+
+         for ( int k = 1; k <= lim; k++ )
+            if ( (double)val[k]/wt[k] < (double)val[max]/wt[max] )
+               max = k;
+         swap ( max, lim, wt );
+         swap ( max, lim, val );
+      }
+   }
+// Required by sort() above
+   static void swap ( int p, int q, int[] x)
+   {  int tmp = x[p];  x[p] = x[q]; x[q] = tmp;  }
+
+   static void report ( boolean[] pack, int[] weight, int[] value )
+   {  int sumWeight = 0, sumValue = 0;
+      for ( int k = 0; k < pack.length; k++ )
+         if ( pack[k] )
+         {  sumWeight += weight[k];
+            sumValue  += value[k];
+            System.out.println ("(" + weight[k] + ", " + value[k] + ")");
+         }
+      System.out.println ("Total weight:  " + sumWeight);
+      System.out.println ("Total value:   " + sumValue);
+   }
+
+// If the Scanner or File constructor fails, throw exception to the JVM
+   public static void main ( String[] args ) throws Exception
+   {  boolean [] pack;
+      int [] weight, value;
+      int k, n, maxWeight;
+      String lineIn = "BandP.txt";     // Default input file
+      Scanner console = new Scanner(System.in),
+              inp = null;
+      int sumValue = 0, sumWeight = 0;
+
+   // For running from an .exe wrapper, allow for dialog for file:
+      System.out.print ("Reading data from file ");
+      if (args.length > 0)
+      {  lineIn = args[0];
+         System.out.println(lineIn);
+      }
+      else
+         lineIn = console.nextLine();
+
+      inp = new Scanner ( new File(lineIn) );
+
+      maxWeight = inp.nextInt();
+      n = inp.nextInt();
+
+      weight  = new int[n];
+      value   = new int[n];
+      pack    = new boolean[n];
+
+      for ( k = 0; k < n; k++ )
+      {  weight[k] = inp.nextInt();
+         value[k]  = inp.nextInt();
+      }
+
+      knapSack (maxWeight, pack, weight, value);
+
+      System.out.println ("\nOptimal knapsack:");
+      report (pack, weight, value);
+      System.out.println ("Total method invocations:  " + nCalls);
+
+      System.out.print ("Press <Enter> to exit:  ");
+      console.nextLine();
+   } // end main
+} // end class KnapSack_Back
+/* Specimen run
+
+Reading data from file BandP.txt
+First feasible solution:  50
+57 replaces 50
+58 replaces 57
+
+Optimal knapsack:
+(11, 45)
+(2, 7)
+(2, 6)
+Total weight:  15
+Total value:   58
+Total method invocations:  129
+*/

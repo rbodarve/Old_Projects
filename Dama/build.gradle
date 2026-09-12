@@ -1,0 +1,36 @@
+plugins {
+    id 'application'
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // Embedded, zero-setup database — the app creates its file under ~/.dama on first run.
+    implementation 'org.xerial:sqlite-jdbc:3.46.1.0'
+    // Silence SLF4J's "no provider" warning that sqlite-jdbc emits at startup.
+    runtimeOnly 'org.slf4j:slf4j-nop:2.0.16'
+}
+
+application {
+    mainClass = 'Dama'
+}
+
+// Compile for Java 17 so the released JAR runs on any Java 17+ runtime.
+tasks.withType(JavaCompile).configureEach {
+    options.release = 17
+}
+
+// Build a single self-contained ("fat") runnable JAR bundling all dependencies.
+jar {
+    manifest {
+        attributes 'Main-Class': 'Dama'
+    }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+    // Exclude signature files from bundled jars so the fat JAR stays loadable.
+    exclude 'META-INF/*.SF', 'META-INF/*.DSA', 'META-INF/*.RSA'
+}
