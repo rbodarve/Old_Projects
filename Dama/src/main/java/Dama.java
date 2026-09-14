@@ -526,6 +526,7 @@ public final class Dama extends JPanel{
 			player1Flag = true;   // selecting the next game always starts with Player 1
 			playerName();
 			board.setUpGame();
+			boardVisible = false;   // hide pieces until this game actually starts, even after a prior game
 			P1points = 0;
 			P1moves = 0;
 			P2points = 0;

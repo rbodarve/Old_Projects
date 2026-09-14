@@ -56,3 +56,49 @@ REMAINING (by design / out of scope)
 10. JDBC runs on the EDT (databaseConnect + every query).  Fine for a local SQLite
     file, but technically blocking work on the UI thread.  Not worth the added
     complexity of a background worker for this app.
+
+================================================================================
+ADDENDUM  --  second review pass
+================================================================================
+
+--------------------------------------------------------------------------------
+FIXED
+--------------------------------------------------------------------------------
+
+11. Blank-board guarantee (issue 6) held only for the FIRST game.
+    boardVisible was set true when a game began and never reset, so on the 2nd+
+    New Game -- after setUpGame() had already reset the pieces -- cancelling setup
+    with the title-bar ✕ showed a full, fresh starting position on a dead board,
+    exactly the "full, dead position" issue 6 claims is fixed.  doNewGame() now
+    sets boardVisible = false, so a cancelled New Game reads as empty every time.
+
+--------------------------------------------------------------------------------
+REMAINING (by design / out of scope / edge cases not worth the churn)
+--------------------------------------------------------------------------------
+
+12. A win in 0 moves records "fewest moves" = 0, which is the sentinel for "no
+    record yet".  RED moves first, so if RED resigns immediately player2 wins with
+    P2moves == 0; player2win() stores 0, and the By Moves query (fewestmoves > 0)
+    then hides it.  So an instant win is indistinguishable from never having won.
+    Minor edge case; a 0-move "win" is degenerate anyway.
+
+13. Flying-king multi-captures remove the taken piece immediately (afterCapture /
+    makeMove), rather than leaving captured pieces on the board as blockers until
+    the whole sequence ends.  Because only kings glide over empty squares, a king
+    mid-chain can re-cross a just-emptied square that strict dama rules would still
+    treat as blocked.  Men are unaffected.  A niche rules divergence.
+
+14. Resign is immediate and unconfirmed, always attributed to the player to move.
+    Draw has a two-step confirm; Resign does not, so a stray click ends the game
+    and writes stats with no undo.  Acceptable for hot-seat; a confirm could be
+    added if it proves annoying in practice.
+
+15. Player-select button states run slightly ahead of the actual selection:
+    clicking "Player 1" enables "Player 2" before Player 1 is confirmed, and
+    Player 1 can't be re-picked once chosen (only a full New Game resets it).
+    Both are recoverable via New Game (playerName() resets the flags); minor.
+
+16. The scoreboard shows Player 2 ("BLACK") in white text and the JMenuBar is
+    added as a bounded child in the null layout (a leftover from the applet
+    conversion) rather than via setJMenuBar().  Both are deliberate/cosmetic and
+    work as-is.
