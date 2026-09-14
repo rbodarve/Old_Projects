@@ -138,7 +138,7 @@ public class Dama extends JPanel{
 		add(p2Score);
 		p1Score.setBounds(0, 305, 225, 25);
 		p2Score.setBounds(225, 305, 225, 25);
-		p1Score.setForeground(new Color(255,130,130));   // RED = Player 1
+		p1Score.setForeground(new Color(255,180,180));   // RED = Player 1 (lightened for contrast on dark red)
 		p2Score.setForeground(Color.WHITE);              // BLACK = Player 2
 		buildOverlay();
 		add(overlay);
@@ -309,6 +309,9 @@ public class Dama extends JPanel{
 		confirmOnNo = onNo;
 		confirmText.setText("<html><div style='text-align:center;'>" + msg + "</div></html>");
 		showOverlay(confirmFrame, title);
+		// Force an explicit Yes/No: without this, the title-bar ✕ would consume the
+		// (already-spent) draw offer without accepting or declining it.  "No" is the way out.
+		overlayCloseButton.setEnabled(false);
 	}
 
 	// Number of player profiles in the database; used to require two before a game can start.
@@ -368,6 +371,7 @@ public class Dama extends JPanel{
 	private class Board extends JPanel implements ActionListener, MouseListener{
 		DamaData board;
 		boolean gameInProgress;
+		boolean boardVisible;   // draw pieces only once a game has started (blank board before then)
 		int currentPlayer;
 		int selectedRow, selectedCol;
 		DamaMove[] legalMoves;
@@ -405,7 +409,7 @@ public class Dama extends JPanel{
 			newGameButton.addActionListener(this);
 			message = new JLabel("",JLabel.CENTER);
 			message.setFont(new  Font("Serif", Font.BOLD, 14));
-			message.setForeground(Color.green);
+			message.setForeground(new Color(150,255,150));   // lightened green for contrast on dark red
 			board = new DamaData();
 			back.addActionListener(this);
 			backToGame.addActionListener(this);
@@ -495,6 +499,7 @@ public class Dama extends JPanel{
                                     resignButton.setEnabled(true);
                                     drawButton.setEnabled(true);
                                     gameInProgress = true;
+                                    boardVisible = true;   // reveal the pieces now that play has begun
                                     updateScore();
                                     message.setText(player1 + ":  Make your move.");
                                     repaint();   // show the movable-piece highlights immediately
@@ -705,6 +710,7 @@ public class Dama extends JPanel{
 						g.setColor(new Color(120,80,50));    // non-playable squares: dark
 					int x = BMARGIN + col*CELL, y = BMARGIN + row*CELL;
 					g.fillRect(x, y, CELL, CELL);
+					if(boardVisible)
 					switch(board.pieceAt(row,col)){
 						case DamaData.RED:
 							g.setColor(Color.RED);
@@ -1126,7 +1132,7 @@ public class Dama extends JPanel{
 	
 	public void byPointsScores(){
 		int i = 0;
-		String descQuery = "select name, highestpoint, opponentpoint from playerstats order by highestpoint DESC";
+		String descQuery = "select name, highestpoint, opponentpoint from playerstats where highestpoint > 0 order by highestpoint DESC";
 		try{
 			ResultSet rs = stmt.executeQuery(descQuery);
 			while(rs.next()&&i<3){
@@ -1161,7 +1167,7 @@ public class Dama extends JPanel{
 		pointScoreFrame.setLayout(new BorderLayout());
 		pointScoreFrame.add(scrollPane, BorderLayout.CENTER);
 		pointScoreFrame.add(pointScoreBack,BorderLayout.SOUTH);
-		showOverlay(pointScoreFrame, "High Scores by Points");
+		showOverlay(pointScoreFrame, "Top 3 by Points");
 	}
 	
 	public void byMovesScores(){
@@ -1200,7 +1206,7 @@ public class Dama extends JPanel{
 		moveScoreFrame.setLayout(new BorderLayout());
 		moveScoreFrame.add(scrollPane, BorderLayout.CENTER);
 		moveScoreFrame.add(moveScoreBack,BorderLayout.SOUTH);
-		showOverlay(moveScoreFrame, "High Scores by Moves");
+		showOverlay(moveScoreFrame, "Top 3 by Moves");
 	}
 	
 	public boolean playerQuery(){
@@ -1472,8 +1478,6 @@ public class Dama extends JPanel{
         
         public void purge(){
             word.clear();
-            //highScoreVector.clear();
-            //playerList.clear();
             scores.clear();
             playerData.clear();
         }
