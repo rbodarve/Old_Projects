@@ -7,7 +7,12 @@ import javax.swing.*;
 import java.sql.*;
 import java.util.*;
 
-public class Dama extends JPanel{
+// final removes the constructor 'this'-escape warning (this class is never subclassed).
+public final class Dama extends JPanel{
+
+	// This Swing UI is never serialized (persistence is via SQLite/JDBC); the id and the
+	// transient markers below simply satisfy the Serializable contract JPanel brings in.
+	private static final long serialVersionUID = 1L;
 
 	public static void main(String[] args){
 		// Build and show all Swing components on the Event Dispatch Thread, as Swing requires.
@@ -51,11 +56,11 @@ public class Dama extends JPanel{
 	public JPanel highFrame = new JPanel();
 	public JButton back = new JButton("Back");
 	public JButton backToGame = new JButton("Back To Game");
-	public LinkedList word = new LinkedList();
-	public Vector highScoreVector = new Vector(1);
-        public Vector playerList = new Vector();
-	private JComboBox box = new JComboBox(playerList);
-	private JComboBox box2 = new JComboBox(highScoreVector);
+	public LinkedList<String> word = new LinkedList<String>();
+	public Vector<String> highScoreVector = new Vector<String>(1);
+        public Vector<String> playerList = new Vector<String>();
+	private JComboBox<String> box = new JComboBox<String>(playerList);
+	private JComboBox<String> box2 = new JComboBox<String>(highScoreVector);
 	public String select = new String();
 	public String select2 = new String();
 	public String player1;
@@ -67,12 +72,12 @@ public class Dama extends JPanel{
 	public int P1moves = 0;
 	public int P2points = 0;
 	public int P2moves = 0;
-	public LinkedList scores = new LinkedList();
+	public LinkedList<String> scores = new LinkedList<String>();
 	public JPanel pointScoreFrame = new JPanel(new BorderLayout());
 	public JButton pointScoreBack = new JButton("Back");
 	public JPanel moveScoreFrame = new JPanel(new BorderLayout());
 	public JButton moveScoreBack = new JButton("Back");
-	public LinkedList playerData = new LinkedList();
+	public LinkedList<String> playerData = new LinkedList<String>();
 	public int gamesPlayed, totalPoints, gamesWin, gamesLose, gamesDraw, highestPoint, fewestMoves, gamesPlayed2, totalPoints2, gamesWin2, gamesLose2, gamesDraw2, highestPoint2, fewestMoves2;
 	public String opponentPoint, opponentMoves, opponentPoint2, opponentMoves2;
 	public JButton chooseP1 = new JButton("Player 1");
@@ -98,7 +103,7 @@ public class Dama extends JPanel{
 	private JPanel messageFrame;
 	private JLabel messageFrameText;
 	private JButton messageFrameOk = new JButton("OK");
-	private Runnable messageOnOk;   // what the message overlay's OK button does (dismiss, or exit)
+	private transient Runnable messageOnOk;   // what the message overlay's OK button does (dismiss, or exit)
 	// Live scoreboard shown at the bottom of the game window (Player 1 left, Player 2 right).
 	private JLabel p1Score = new JLabel(" ", JLabel.CENTER);
 	private JLabel p2Score = new JLabel(" ", JLabel.CENTER);
@@ -107,7 +112,7 @@ public class Dama extends JPanel{
 	private JLabel confirmText;
 	private JButton confirmYes = new JButton("Yes");
 	private JButton confirmNo = new JButton("No");
-	private Runnable confirmOnYes, confirmOnNo;
+	private transient Runnable confirmOnYes, confirmOnNo;
 	private boolean p1DrawSpent, p2DrawSpent;
 	// Inline status line on the players-select prompt (e.g. "need two players").
 	private JLabel p1Status = new JLabel(" ");
@@ -369,12 +374,13 @@ public class Dama extends JPanel{
 	}
 
 	private class Board extends JPanel implements ActionListener, MouseListener{
-		DamaData board;
+		private static final long serialVersionUID = 1L;   // never serialized; UI state only
+		transient DamaData board;
 		boolean gameInProgress;
 		boolean boardVisible;   // draw pieces only once a game has started (blank board before then)
 		int currentPlayer;
 		int selectedRow, selectedCol;
-		DamaMove[] legalMoves;
+		transient DamaMove[] legalMoves;
 
 		Board(){
 			setBackground(Color.BLACK);
@@ -1008,7 +1014,7 @@ public class Dama extends JPanel{
 			}
 			rs.close();
 			// Build a fresh combo box each open so we don't stack duplicate ItemListeners.
-			box2 = new JComboBox(highScoreVector);
+			box2 = new JComboBox<String>(highScoreVector);
 			if(highScoreVector.size() > 0)
 				select2 = "" + box2.getItemAt(0);
 			box2.addItemListener(
@@ -1447,7 +1453,7 @@ public class Dama extends JPanel{
 				playerList.add(temp);
 			}
 			rs.close();
-			box = new JComboBox(playerList);
+			box = new JComboBox<String>(playerList);
 			if(playerList.size() > 0){
 				box.setSelectedIndex(0);
 				select = "" + box.getSelectedItem();
