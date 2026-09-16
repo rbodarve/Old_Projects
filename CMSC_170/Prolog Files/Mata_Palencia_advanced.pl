@@ -3,16 +3,16 @@
 %Prolog 4 - Advanced Lists
 %Date Due: September 16, 2011
 
-cutlast([H], []) :- !.
+cutlast([_], []) :- !.
 cutlast([H|T], L2) :- cutlast(T, H2), putfirst(H, H2, L2).
 
 
 
 size([],0).
-size([H|T],N) :- size(T,N1), N is N1+1 .
-trim([H|T],0,[]).
+size([_|T],N) :- size(T,N1), N is N1+1 .
+trim([_|_],0,[]).
 trim([H|T],X,[H|T1]) :- size([H|T],N), N>X, cutlast([H|T],M), trim(M,X,[H|T1]).
-trim([H|T],X,[H|T]) :- size([H|T],N), N<X;N=X.
+trim([H|T],X,[H|T]) :- size([H|T],N), (N<X;N=X).
 
 
 
@@ -31,7 +31,7 @@ del(X, [A|L], [A|L1]) :- del(X,L,L1).
 
 
 
-split([],N,[],[]).
+split([],_,[],[]).
 split([H|T],N,[H|T1],L3) :- H =< N, split(T,N,T1,L3).
 split([H|T],N,L2,[H|T2]) :- H > N, split(T,N,L2,T2).
 

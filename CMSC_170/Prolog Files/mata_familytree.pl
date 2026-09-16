@@ -55,5 +55,5 @@ son(X,Y):- male(X), parent(Y,X).
 daughter(X,Y):- female(X), parent(Y,X).
 siblings(X,Y):- mother(A,X), mother(A,Y), father(B,X), father(B,Y), X\=Y.
 cousins(X,Y):- parent(Z,X), parent(A,Y), siblings(Z,A).
-aunt(X,Y):- female(X), cousins(A,Y), parent(X,A), .
+aunt(X,Y):- female(X), cousins(A,Y), parent(X,A).
 uncle(X,Y):- male(X), cousins(A,Y), parent(X,A).

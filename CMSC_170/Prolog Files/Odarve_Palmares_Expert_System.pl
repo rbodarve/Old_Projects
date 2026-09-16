@@ -1,9 +1,10 @@
+:- dynamic known/3.
 %expert system on Jutsu Types and users in Naruto
 
 %beging here!!!
 start(X) :- asserta(known(a,b,c)), abolish(known/3), asserta(known(a,b,c)), ninja(X).
 
-%the heroes– 3rd level of the diagram
+%the heroes- 3rd level of the diagram
 ninja(kisame) :- discipline(suiton), bloodline(none), strength(strong), !.
 ninja(tobirama) :- discipline(suiton), bloodline(present), stamina(high), !.
 ninja(kakashi) :- discipline(raiton), bloodline(none), intelligence(high), !.
@@ -23,7 +24,7 @@ ninja(madara) :- discipline(doujutsu), bloodline(present), strength(strong), !.
 ninja(jiraiya) :- discipline(nondoujutsu), bloodline(none), strength(strong), !.
 ninja(kurenai) :- discipline(nondoujutsu), bloodline(none), speed(fast), !.
 
-%discipline – 2nd level of the diagram
+%discipline - 2nd level of the diagram
 discipline(suiton) :- jutsu(ninjutsu), weakness(doton).
 discipline(raiton) :- jutsu(ninjutsu), weakness(fuuton).
 discipline(katon) :- jutsu(ninjutsu), weakness(suiton).
@@ -34,12 +35,12 @@ discipline(weapon) :- jutsu(taijutsu), weakness(doujutsu).
 discipline(doujutsu) :- jutsu(genjutsu), weakness(hand2hand).
 discipline(nondoujutsu) :- jutsu(genjutsu), weakness(weapon).
 
-%major element jutsu – 1st level of the diagram
+%major element jutsu - 1st level of the diagram
 jutsu(ninjutsu) :- handseals(fast), chakra(high).
 jutsu(genjutsu) :- intelligence(high).
 jutsu(taijutsu) :- speed(fast), strength(strong).
 
-%all possible properties – used to describe each node
+%all possible properties - used to describe each node
 intelligence(X) :- ask(intelligence, X).
 strength(X) :- ask(strength, X).
 speed(X) :- ask(speed, X).

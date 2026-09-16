@@ -39,7 +39,7 @@ father(X,Y):- parent(X,Y), male(X).
 mother(X,Y):- parent(X,Y), female(X).
 son(X,Y):- parent(X,Y), male(Y).
 daughter(X,Y):- parent(X,Y), female(Y).
-sibling(X,Y):- father(F,X), father(F,Y), mother(M,X), mother(M,Y)\+(X=Y). 
+sibling(X,Y):- father(F,X), father(F,Y), mother(M,X), mother(M,Y), \+(X=Y). 
 brother(X,Y):- male(X), father(F,X), father(F,Y), mother(M,X), mother(M,Y), \+(X=Y).
 sister(X,Y):- female(X), father(F,X), father(F,Y), mother(M,X), mother(M,Y), \+(X=Y).
 aunt(X,Y):- female(X),  parent(F,Y), sister(X,F),\+(X=Y). 

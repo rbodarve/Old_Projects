@@ -1,9 +1,10 @@
+:- dynamic known/3.
 %expert system on memory
 
 %begin here!!!
 start(X) :- asserta(known(a,b,c)),abolish(known/3), asserta(known(a,b,c)), memory(X).
 
-%the memories – 3rd level of the diagram
+%the memories - 3rd level of the diagram
 memory(ddrsdram) :- subgroup(dram), clockspeed(depends), !.
 memory(rdram) :- subgroup(dram), clockspeed(nonupgradable), !.
 memory(sdram) :- subgroup(dram), clockspeed(upgradable),!.
@@ -22,18 +23,18 @@ memory(c320) :- subgroup(eprom), sizemem(fourmb), !.
 memory(usb) :- subgroup(eeprom), storage(tenmbtotengb), usedfor(pc_laptops), !.
 memory(sdcard) :- subgroup(eeprom), storage(tenmbtotengb), usedfor(cd_cams), !.
 
-%subgroups – 2nd level of the diagram
+%subgroups - 2nd level of the diagram
 subgroup(dram) :- class(ram), capacity(large), prosspeed(slow), cost(low), refresh(available), power(high).
 subgroup(sram) :- class(ram), capacity(small), prosspeed(fast), cost(high), refresh(notavailable), power(low).
 subgroup(maskrom) :- class(rom), erasability(nonerasable), writeability(writable).
 subgroup(eprom) :- class(rom), erasability(erasable), writeability(writable).
 subgroup(eeprom) :- class(rom), erasability(erasable), writeability(nonwritable).
 
-%major memory classes – 1st level of the diagram
+%major memory classes - 1st level of the diagram
 class(ram) :- volatility(volatile).
 class(rom) :- volatility(none).
 
-%all possible properties – used to describe each node
+%all possible properties - used to describe each node
 volatility(X) :- ask(volatility, X).
 erasability(X) :- ask(erasability,X).
 writeability(X) :- ask(writeability, X).

@@ -1,6 +1,6 @@
 %1 - the list [H|T] has the average A
 count([],0).
-count([H|T],C) :- count(T,C1), C is C1 + 1.
+count([_|T],C) :- count(T,C1), C is C1 + 1.
 
 sum([],0).
 sum([H|T],S) :- sum(T,S1), S is S1+H.
@@ -21,7 +21,7 @@ sumsquare([H|T],S) :- sumsquare(T,S1), S is S1 + (H * H).
 
 %4 - should write only the elements on the even positions
 even([H|T]) :- write(H), write(' '), evenpositions(T).
-evenpositions([H|T]) :- even(T).
+evenpositions([_|T]) :- even(T).
 
 %5 - the list [H|T] has the maximum element M
 getmax([H], H).
