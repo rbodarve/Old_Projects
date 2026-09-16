@@ -45,8 +45,6 @@ public class ZeroOneKnapsack {
     				else{
     					values[i][w] = current;
     					taken[i][w] = true;
-    					if(!taken[i-1][w-this.items[i-1].weight])
-    						taken[i-1][w] = false;
     				}
     			}
     			else{
@@ -57,9 +55,15 @@ public class ZeroOneKnapsack {
     	}
     	
     	//construct 0-1 (boolean) return array indicating which item is taken
+    	//backtrack from the last item at full capacity, decrementing the
+    	//remaining weight each time an item is actually taken
     	boolean[] ret = new boolean[this.items.length];
-    	for(int i=0; i<ret.length; i++){
-    		ret[i] = taken[i+1][maxWeightAllowed];
+    	int w = maxWeightAllowed;
+    	for(int i=this.items.length; i>=1; i--){
+    		if(values[i][w] != values[i-1][w]){
+    			ret[i-1] = true;
+    			w -= this.items[i-1].weight;
+    		}
     	}
     	return ret;
     }

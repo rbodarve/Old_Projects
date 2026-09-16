@@ -1,0 +1,63 @@
+{
+  "id": "readme-dictation-insertion-2026-09-17",
+  "title": "Accidental dictation/speech-to-text transcript inserted into Old_Projects/README.md",
+  "recordedAt": "2026-09-17",
+  "severity": "low",
+  "status": "resolved",
+  "summary": "Two paragraphs of unrelated speech-to-text transcript were appended to the end of the workspace root README.md. The text was never committed (working-tree only) and has since been removed. This file documents what happened, the evidence trail, and the likely cause.",
+  "affectedFile": "README.md",
+  "location": {
+    "lines": "69-71",
+    "position": "appended immediately after line 68 (end of the 'Acknowledgements & Sources' section), with no separating blank line"
+  },
+  "insertedText": {
+    "note": "Verbatim capture of the removed content, exactly as it appeared. Line 70 was an empty line between the two paragraphs, indicating two separate dictation bursts. Paragraph 1 ended with a trailing space.",
+    "line69": "And actually, it took her so long to do that; it was crazy. Why don't you wake them up? You could have just let them sleep; it would have been an easy win. You silly goose, I don't know why she woke them up. You were drinking gold; she got out of there. God said you free whim. Did you check to make sure your garlic was in there before you left? Just very trusting. Is it full enough? He doesn't have to play completely full. She's not going to win. Crazy, I thought she didn't feel that way when she showed up the first time. Extremely hard; hers and the omings are definitely the hardest. Specifically, say full bridge. ",
+    "line70": "",
+    "line71": "The first part of the crown in this stream: shut up, browning, craving brownie so hard. He's so funny, clown, not winning. I bought it for when I went to Disney; I just haven't used the underwater feature like a lot. I think it's really cute. I was going to say in a web, no, it's cute. A lot really cute that like these four entertainers together are doing this show, and they're traveling all the time. They're just becoming best friends. Yeah, purposely tried to pick people who could be friends, unlike they gonna."
+  },
+  "evidenceTrail": {
+    "committed": false,
+    "gitBlame": "Lines 69-71 attributed to '00000000 (Not Committed Yet)' — uncommitted local changes only.",
+    "headState": "git show HEAD:README.md ends at line 68 ('...see the Projects table.'). The text is absent from every commit.",
+    "lastCommitTouchingFile": "52295b1 'Temporary fixed the other projects. Fixed some issues in Dama.' (2026-09-16 16:41:46 +0800)",
+    "workingTreeMtime": "2026-09-17 00:53:02 +0800",
+    "editorArtifacts": "No swap/backup/autosave files (.swp, ~, .#*) were present to narrow the source further."
+  },
+  "likelyCause": {
+    "classification": "Speech-to-text / dictation transcript, not authored content or a script edit.",
+    "reasoning": "The content is rambling first-person spoken English about unrelated topics (a stream, brownies, Disney, entertainers becoming friends), contains no markdown or code, and appears as two bursts separated by a blank line. This is characteristic of a voice-dictation input capturing ambient audio.",
+    "primeSuspect": "Windows dictation (Win+H) on the Windows host, inserting recognized speech at the focused editor's caret while the cursor was parked at the end of README.md. The workspace is Windows -> WSL2 with the file open in the IDE.",
+    "certainty": "High that it is dictation; the exact application cannot be forensically proven because no logs or swap files survive."
+  },
+  "resolution": {
+    "action": "Removed lines 69-71 from README.md, restoring the file to end at the 'Acknowledgements & Sources' section.",
+    "verifiedBy": "README.md now ends at the Projects-table reference line; no other content was altered."
+  },
+  "prevention": [
+    "Disable or be mindful of OS-level dictation (Win+H) when an editor is focused.",
+    "Review 'git diff' before committing so stray working-tree insertions are caught."
+  ],
+  "workspaceGitignoreState": {
+    "note": "Requested capture of the workspace's .gitignore at this iteration.",
+    "root": {
+      "path": ".gitignore",
+      "exists": false,
+      "comment": "No .gitignore exists at the Old_Projects workspace root."
+    },
+    "perProject": [
+      {
+        "path": "Dama/.gitignore",
+        "contents": "# Build output\nbuild/\n.gradle/\n\n# Compiled class files (source lives in src/main/java)\n*.class\n\n# Local SQLite database (created at runtime under ~/.dama)\n*.db\n"
+      },
+      {
+        "path": "Deep-transfer-learning-with-gravitational-search-algorithm-for-enhanced-plant-disease-classification-main/.gitignore",
+        "contents": "Dataset\n"
+      },
+      {
+        "path": "EvoloPy-master/EvoloPy-master/.gitignore",
+        "contents": "*~\n__pycache__/\n"
+      }
+    ]
+  }
+}

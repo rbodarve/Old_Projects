@@ -106,12 +106,12 @@ public class TicTacToeAI {
         }
         /* play empty corner */
         int corner[] = {0,2};
-        int temp = new java.util.Random().nextInt(2);
-        int temp2 = new java.util.Random().nextInt(2);
-        if(getBoardValue(corner[temp],corner[temp2])==EMPTY){
-            System.out.println("rty");
-            return new int[]{corner[temp],corner[temp2]};
-        }
+        for (int c1 = 0; c1 < 2; c1++)
+            for (int c2 = 0; c2 < 2; c2++)
+                if (getBoardValue(corner[c1], corner[c2]) == EMPTY) {
+                    System.out.println("rty");
+                    return new int[]{corner[c1], corner[c2]};
+                }
         /* play empty side */
         for (int a = 0; a < 3; a++)
             for (int b = 0; b < 3; b++)
@@ -125,11 +125,11 @@ public class TicTacToeAI {
     
     /* determine for fork move*/
     public int[] isFork(int token) {
-        int count = 0;
-        for (int i = 0; i < 3; i++) 
-            for (int j = 0; j < 3; j++) 
+        for (int i = 0; i < 3; i++)
+            for (int j = 0; j < 3; j++)
                 if (getBoardValue(i, j) == EMPTY) {
                     board[i][j] = inverse(token);
+                    int count = 0;
                     for (int a = 0; a < 3; a++)
                         for (int b = 0; b < 3; b++)
                             if (getBoardValue(a, b) == EMPTY) {
@@ -140,22 +140,8 @@ public class TicTacToeAI {
                                     count++;
                             }
                     board[i][j] = EMPTY;
-                    if (count == 2){    
-                        board[i][j] = token;
-                        for (int a = 0; a < 3; a++)
-                            for (int b = 0; b < 3; b++)
-                                if (getBoardValue(a, b) == EMPTY) {
-                                    board[a][b] = token;
-                                    boolean jay = isWin(token);
-                                    board[a][b] = EMPTY;
-                                    if (jay){
-                                        board[i][j] = EMPTY;
-                                        return new int[]{i, j};
-                                    }
-                                }
-                        board[i][j] = EMPTY;
-                    }
-                    count = 0;
+                    if (count >= 2)
+                        return new int[]{i, j};
                 }
         return null;
     }

@@ -16,7 +16,7 @@ class GraphMatrixDirected extends GraphMatrix{
     vtx1 = (GraphMatrixVertex)dict.get(v1);
     vtx2 = (GraphMatrixVertex)dict.get(v2);
     //update matrix with new edge
-    Edge e = new Edge(vtx1.label( ), vtx2.label( ), label, false);
+    Edge e = new Edge(vtx1.label( ), vtx2.label( ), label, true);
     data[vtx1.index( )][vtx2.index( )] = e;
   }
   public Object removeEdge(Object v1, Object v2) {

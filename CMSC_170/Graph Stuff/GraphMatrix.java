@@ -45,6 +45,7 @@ abstract class GraphMatrix implements Graph {
     //find and extract vertex
     GraphMatrixVertex vert;
     vert = (GraphMatrixVertex)dict.remove(label);
+    if (vert == null) return null;
     //remove vertex from matrix
     int index = vert.index( );
     //clear row and column entries
@@ -167,14 +168,14 @@ abstract class GraphMatrix implements Graph {
       int count = 0;
       int row = v.index( );
       if (directed){
-        for (int i = 0; i < size && i != row; i++)
-          if (data[row][i] != null) count++;  //out degree
-        for (int j = 0; j < size && j != row; j++)
-          if (data[j][row] != null) count++; //in degree
+        for (int i = 0; i < size; i++)
+          if (i != row && data[row][i] != null) count++;  //out degree
+        for (int j = 0; j < size; j++)
+          if (j != row && data[j][row] != null) count++; //in degree
       }
       else if (!directed) {
-        for (int i = 0; i < size && i != row; i++)
-          if (data[row][i] != null) count++;
+        for (int i = 0; i < size; i++)
+          if (i != row && data[row][i] != null) count++;
       }
       return count;
     }

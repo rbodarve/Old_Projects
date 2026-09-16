@@ -1,5 +1,8 @@
+/* SOLUTION #2 : The N-Queens problem WITHOUT recursion (using two stacks,
+   implemented with arrays). Uses Niklaus Wirth's method of three boolean
+   arrays (columns and the two diagonal directions) to mark attacked squares. */
+
 # include <stdio.h>
-# include <conio.h>
 # include <stdlib.h>
 # include <time.h>
 
@@ -11,14 +14,16 @@ position;
 void SolveProblem(int n);
 int N=0;
 
-void main(){
+int main(){
 	printf("\nENTER THE SIZE OF CHESSBOARD ( N ) FOR NxN CHESSBOARD :");
 	scanf("%d",&N);
+	if(N<1 || N>50) { printf("\nN must be between 1 and 50 (bounded by the d[100][3] marker array).\n"); return 1; }
 	printf("\nIn Each of the solutions the Coordinates of the N-Queens are given (Row,Col) .");
 	printf("\nNote that the Rows and Colums are numbered between 1 - N :\n");
 	SolveProblem(N);
 	getchar();
-	getch();
+	getchar();
+	return 0;
 }
 
 void SolveProblem(int n){

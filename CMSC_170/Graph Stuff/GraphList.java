@@ -50,9 +50,11 @@ abstract class GraphList implements Graph {
       Edge e = null;
       while (itr.hasNext( ) && !found) {
         e = (Edge)itr.next( );
-        found =(e.here( ).equals(v1.label( )) && e.there( ).equals(v2.label( ))); 
+        found = (e.here( ).equals(v1.label( )) && e.there( ).equals(v2.label( )));
+        if (!directed)
+          found = found || (e.here( ).equals(v2.label( )) && e.there( ).equals(v1.label( )));
       }
-      return e;
+      return found ? e : null;
   }
     
    

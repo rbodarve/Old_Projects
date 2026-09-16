@@ -33,7 +33,7 @@ own `README.md` with full detail and independent source citations — this page 
 
 | Folder | What it is | Original state | Current state |
 |--------|------------|----------------|---------------|
-| [CMSC_170/](CMSC_170/) | AI coursework (C++, Java, Prolog) | Loose source files dumped by topic, no README, mojibake in some Prolog files | Organized and documented per topic; runnable file-by-file; encoding caveats noted |
+| [CMSC_170/](CMSC_170/) | AI coursework (C++, Java, Prolog) | Loose source files by topic, no README, several no longer built or ran on modern tooling | Topic README with each area reviewed and repaired to build/run, each carrying its own `ABOUT.md` change log — see [CMSC_170/README.md](CMSC_170/README.md) |
 | [Dama/](Dama/) | Two-player Dama board game (Java Swing) | MySQL-backed Java **applet** — needed a browser plugin and an external DB server | Self-contained desktop app: embedded **SQLite**, single runnable JAR, **Gradle** build; reviewed gameplay/UI bugs fixed across three passes, incl. strict flying-King capture blockers and a Resign confirmation (see [docs/issues.txt](Dama/docs/issues.txt)) |
 | [Deep-transfer-learning…GSA…/](Deep-transfer-learning-with-gravitational-search-algorithm-for-enhanced-plant-disease-classification-main/) | Plant-disease image classifier (MobileNetV2 + Gravitational Search Algorithm) | Notebook with a **fabricated** `accuracy × 2` metric and no real GSA | Rebuilt, working Colab notebook: genuine GSA hyperparameter search and honest test metrics |
 | [EvoloPy-master/](EvoloPy-master/) | Nature-inspired optimization library (Python) | Older fork, drifted from upstream | Synced to upstream **v4.0.6**; static review logged known bugs (see [issues-evolopy.txt](EvoloPy-master/issues-evolopy.txt)) — not yet all fixed |
@@ -42,7 +42,7 @@ own `README.md` with full detail and independent source citations — this page 
 ## State Summary
 
 - **Modernized & working** — Dama, the GSA plant-disease notebook.
-- **Organized & documented** — CMSC_170 (coursework kept as-is, now navigable).
+- **Reviewed & documented** — CMSC_170 (per-topic bug fixes, each with an `ABOUT.md` change log).
 - **Reviewed, fixes pending** — EvoloPy-master (issues logged, not all resolved).
 - **Archived reference only** — UPMin_System (obsolete platform; not revived).
 

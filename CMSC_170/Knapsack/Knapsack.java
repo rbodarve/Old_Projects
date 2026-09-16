@@ -126,7 +126,7 @@ public class Knapsack {
                         }catch (IOException a){ a.printStackTrace(); }
                     }
                     else{
-                        inputTBox.setText(" ");
+                        inputTBox.setText("");
                         try{
                             FileReader frame = new FileReader(choose.getSelectedFile());
                             BufferedReader br = new BufferedReader(frame);
@@ -240,12 +240,14 @@ public class Knapsack {
             public void sortAll(Vector saveProf, Vector saveWeight, JTextArea inputTBox, JTextArea solnTbox, JTextArea outputTbox){
                 inputTBox.setText("");//sets the input box to nothing for showing the sorted one
                 String[] sprofit, sweight;//temporary variables
-                int i, a, bou, c;
-                int[] x, y, z;
-    	
+                int i, bou, c;
+                double a;
+                int[] x, y;
+                double[] z;
+
                 x = new int[size];
                 y = new int[size];
-                z = new int[size];
+                z = new double[size];
                 sprofit = new String[size];
                 sweight = new String[size];
     	
@@ -262,7 +264,7 @@ public class Knapsack {
                     catch(NumberFormatException e){ out.println("Parsed object isn't an integer."); }
                 }
     	
-                for(i = 0; i<size; i++){ z[i] = x[i]/y[i]; }//compute for each density
+                for(i = 0; i<size; i++){ z[i] = (y[i] == 0) ? Double.MAX_VALUE : (double)x[i]/y[i]; }//compute for each density
     	
                 for(i = 0; i<size; i++){//outer loop for sorting starts with the first element
                     for(int choose = i+1; choose<size; choose++){ //starts with the next element
@@ -335,7 +337,7 @@ public class Knapsack {
             }
 
             //Function that solves the kanpsack problem using DFS
-            public void dfs(int p[], int w[], int pw[], JTextArea textInput, JTextArea textSolution, JTextArea textOutput) {
+            public void dfs(int p[], int w[], double pw[], JTextArea textInput, JTextArea textSolution, JTextArea textOutput) {
                 int temp, temp_p, temp_w, temp_count=0, j, k=0;//temporary variables
                 boolean trigger = false;
                 Integer n;
@@ -348,7 +350,7 @@ public class Knapsack {
                     started = true; //sets the variable to true to continue traversing
                 }
                 else{
-                    if(if_promising() == true){     //Check if node is promising
+                    if(if_promising() == true && last_lev < size){//promising AND not already at last item
     			go_left(p, w, pw);          //if true, traverse left child node
                     }
                     else{   //if false, backtrack
@@ -374,6 +376,7 @@ public class Knapsack {
                                         temp_pos = Integer.parseInt(pos.elementAt(i).toString());
     					if(temp_pos%2 == 0){
                                             for(k=size; k>=1; k--){
+                                                temp_count = 0;//count level k afresh each iteration
                                                 for(j=1; j<pos.size(); j++){
                                                     temp = Integer.parseInt(lev.elementAt(j).toString());
                                                     if(temp == k) temp_count++;
@@ -402,14 +405,17 @@ public class Knapsack {
                                         out.println("Error in parsing object.");
                                     }
     				}
+    				if(trigger == false){ stop = true; }//no ancestor left to backtrack to: traversal exhausted
                             }
 
-                            lev.addElement(last_lev);
-                            pos.addElement(last_pos);
-    
-                            exclude();//call to function exclude to reject the node
+                            if(stop == false){
+                                lev.addElement(last_lev);
+                                pos.addElement(last_pos);
 
-                            get_bound(p, w, pw);//call to calculate bound
+                                exclude();//call to function exclude to reject the node
+
+                                get_bound(p, w, pw);//call to calculate bound
+                            }
     			}
                     }
                 }
@@ -443,8 +449,8 @@ public class Knapsack {
 
 
                         for(i=0; i<size; i++){
-                            if(nclude[i] == 1) textSolution.setText(" ");
-                            textSolution.append("Item " + (i+1) + "<" + p[i] + "," + w[i] + ">" + newline1);
+                            if(nclude[i] == 1)
+                                textSolution.append("Item " + (i+1) + "<" + p[i] + "," + w[i] + ">" + newline1);
     			}
                       
     			textSolution.append("Max Profit: " + mp);
@@ -483,7 +489,7 @@ public class Knapsack {
                 return promising;//return result
             }
     
-            public void get_bound(int p[], int w[], int pw[]){  //function to COMPUTE FOR BOUND
+            public void get_bound(int p[], int w[], double pw[]){  //function to COMPUTE FOR BOUND
                 for(i=0; i<pw.length ; i++){
                     if(xclude[i] == 1){ continue; } //exclude an item if item is set to 1
                     else{
@@ -498,7 +504,7 @@ public class Knapsack {
                     }
                 }
                 if(k != -1){  //bound can be calculated since current weight is less than max profit
-                    temp_bound = temp_profit + ((k_capacity-temp_weight)*pw[k]);//if there is an item
+                    temp_bound = temp_profit + (int)((k_capacity-temp_weight)*pw[k]);//if there is an item
                 }                                           //which is partially added to the knapsack
                 else temp_bound = temp_profit + ((k_capacity-temp_weight)*0);//no items is partially placed
 
@@ -514,7 +520,7 @@ public class Knapsack {
                     xclude[i] = 0;
             }
 
-            public void go_left(int p[], int w[], int pw[]){
+            public void go_left(int p[], int w[], double pw[]){
                 try{    //add new level
                     last_lev = Integer.parseInt(lev.lastElement().toString());
                     last_lev += 1; //go deeper by one level
@@ -614,7 +620,7 @@ public class Knapsack {
                 }
             }
 
-            public void get_items(int mp, int p[], int w[], int pw[]){  //get the items that generate
+            public void get_items(int mp, int p[], int w[], double pw[]){  //get the items that generate
                 int target_level_index, level, level2, position, level_count=0, j;  //max profit
                 Integer t = new Integer(mp);
 

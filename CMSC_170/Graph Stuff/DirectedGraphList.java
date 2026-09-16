@@ -19,14 +19,13 @@ public class DirectedGraphList extends GraphList {
     //post-condition:   vertex with this label is removed, if found
     //Assert.pre(dict.contains(label), "Vertex not found");
     GraphListVertex v = (GraphListVertex)dict.get(label);
-    Iterator itr = v.adjacentEdges( );
+    if (v == null) return null;
+    //remove incoming edges held by other vertices; v's own outgoing edges
+    //are discarded when the vertex is dropped from the dictionary below.
+    //edges() iterates over a snapshot, so removeEdge may safely mutate.
+    Iterator itr = edges( );
     while (itr.hasNext( ) ) {
       Edge e = (Edge)itr.next( );
-      v.removeEdge(e);
-    }
-    Iterator itr2 = edges( );
-    while (itr2.hasNext( ) ) {
-      Edge e = (Edge)itr2.next( );
       if (e.there( ).equals(label))
         removeEdge(e.here( ), e.there( ));
     }
