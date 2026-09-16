@@ -547,6 +547,15 @@ public final class Dama extends JPanel{
 				message.setText("There is no game in progress!");
 				return;
 			}
+			// Resign ends the game with no undo, so (like Draw) require an explicit confirm
+			// from the player to move before it takes effect -- a stray click no longer loses.
+			String resigner = (currentPlayer == DamaData.RED) ? player1 : player2;
+			overlayConfirm("Resign", resigner + ", are you sure you want to resign?",
+				() -> { hideOverlay(); finishResign(); },
+				() -> hideOverlay());   // backs out: the game continues
+		}
+
+		void finishResign(){
 			if(currentPlayer == DamaData.RED){
 				P2points+=10;
 				gameOver(player1 + " resigns.  " + player2 + " wins.");
@@ -651,6 +660,9 @@ public final class Dama extends JPanel{
 					return;
 				}
 			}
+			// The capture chain is over (or this was a quiet move): remove the jumped pieces that
+			// were held on the board as blockers, so the opponent's turn sees a clean position.
+			board.clearCaptured();
 			if(currentPlayer == DamaData.RED){
 				// RED (player1) just completed a turn: +1 for the move, +5 if promoted this turn, and count the move.
 				P1points++;
@@ -791,6 +803,10 @@ public final class Dama extends JPanel{
 
 	private static class DamaData{
 		static final int EMPTY = 0, RED = 1, RED_KING = 2, BLACK = 3, BLACK_KING = 4;
+		// A piece already jumped in the current capture chain: it stays on the board as a blocker
+		// (can't be re-jumped, can't be flown over or landed on) until the whole turn ends, then
+		// clearCaptured() sweeps every marker back to EMPTY.  Never rendered (paint ignores it).
+		static final int CAPTURED = 5;
 		int[][] board;
 
 		DamaData(){
@@ -829,7 +845,9 @@ public final class Dama extends JPanel{
 			board[move.toRow][move.toCol] = board[move.fromRow][move.fromCol];
 			board[move.fromRow][move.fromCol] = EMPTY;
 			if(move.jump)
-				board[move.captureRow][move.captureCol] = EMPTY;
+				// Mark, don't remove: the taken piece blocks the rest of this chain and is
+				// only cleared (clearCaptured) once the turn ends.
+				board[move.captureRow][move.captureCol] = CAPTURED;
 			// A man that STOPS on the far row is crowned (dama).  If this was a capture and the
 			// same man can immediately keep capturing, it stays a man and jumps on, crowning only
 			// when it finally comes to rest on the far row.
@@ -972,15 +990,25 @@ public final class Dama extends JPanel{
 			return mv;
 		}
 
-		// A copy of b with a capture applied (piece moved, taken piece removed) for lookahead.
+		// A copy of b with a capture applied for lookahead.  The taken piece is left as a CAPTURED
+		// blocker (not removed), so chain-length lookahead honors the same "can't re-cross a jumped
+		// piece" rule the real board does.
 		private int[][] afterCapture(int[][] b, DamaMove m){
 			int[][] n = new int[8][8];
 			for(int r = 0; r < 8; r++)
 				System.arraycopy(b[r], 0, n[r], 0, 8);
 			n[m.toRow][m.toCol] = n[m.fromRow][m.fromCol];
 			n[m.fromRow][m.fromCol] = EMPTY;
-			n[m.captureRow][m.captureCol] = EMPTY;
+			n[m.captureRow][m.captureCol] = CAPTURED;
 			return n;
+		}
+
+		// Sweep every CAPTURED blocker back to EMPTY: called once the capture chain (the turn) ends.
+		void clearCaptured(){
+			for(int r = 0; r < 8; r++)
+				for(int c = 0; c < 8; c++)
+					if(board[r][c] == CAPTURED)
+						board[r][c] = EMPTY;
 		}
 
 		private boolean isKing(int piece){
@@ -1350,7 +1378,9 @@ public final class Dama extends JPanel{
 			opponentPoint2 = String.valueOf(playerData.get(0));
 		}
 		// "Fewest moves to win": only the winner (player1) records it, and 0 means "no record yet".
-		if(fewestMoves==0 || P1moves<fewestMoves){
+		// Require P1moves>0 so a 0-move win (opponent resigned before the winner moved) never writes
+		// the 0 sentinel as a real record -- which would then be hidden by the fewestmoves>0 filter.
+		if(P1moves>0 && (fewestMoves==0 || P1moves<fewestMoves)){
 			fewestMoves = P1moves;
 			opponentMoves = String.valueOf(playerData.get(10));
 		}
@@ -1384,7 +1414,9 @@ public final class Dama extends JPanel{
 			opponentPoint2 = String.valueOf(playerData.get(0));
 		}
 		// "Fewest moves to win": only the winner (player2) records it, and 0 means "no record yet".
-		if(fewestMoves2==0 || P2moves<fewestMoves2){
+		// Require P2moves>0 so a 0-move win (opponent resigned before the winner moved) never writes
+		// the 0 sentinel as a real record -- which would then be hidden by the fewestmoves>0 filter.
+		if(P2moves>0 && (fewestMoves2==0 || P2moves<fewestMoves2)){
 			fewestMoves2 = P2moves;
 			opponentMoves2 = String.valueOf(playerData.get(0));
 		}

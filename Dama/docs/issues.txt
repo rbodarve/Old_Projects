@@ -73,25 +73,31 @@ FIXED
     sets boardVisible = false, so a cancelled New Game reads as empty every time.
 
 --------------------------------------------------------------------------------
-REMAINING (by design / out of scope / edge cases not worth the churn)
+FIXED (third pass -- Bucket B)
 --------------------------------------------------------------------------------
 
-12. A win in 0 moves records "fewest moves" = 0, which is the sentinel for "no
-    record yet".  RED moves first, so if RED resigns immediately player2 wins with
-    P2moves == 0; player2win() stores 0, and the By Moves query (fewestmoves > 0)
-    then hides it.  So an instant win is indistinguishable from never having won.
-    Minor edge case; a 0-move "win" is degenerate anyway.
+12. Fewest-moves record no longer collides with the "no record" sentinel.
+    player1win()/player2win() now guard the record with P?moves > 0, so a 0-move
+    win (opponent resigns before the winner has moved) never writes 0 as a real
+    record -- keeping the invariant that fewestmoves == 0 always means "no record
+    yet".  The win itself still counts via gameswin.
 
-13. Flying-king multi-captures remove the taken piece immediately (afterCapture /
-    makeMove), rather than leaving captured pieces on the board as blockers until
-    the whole sequence ends.  Because only kings glide over empty squares, a king
-    mid-chain can re-cross a just-emptied square that strict dama rules would still
-    treat as blocked.  Men are unaffected.  A niche rules divergence.
+13. Flying-king multi-captures now honor jumped pieces as blockers.
+    A jumped piece is marked CAPTURED (a new DamaData state) and left on the board
+    for the rest of the chain -- it can't be re-jumped, flown over, or landed on --
+    then clearCaptured() sweeps every marker to EMPTY once the turn ends.
+    makeMove() and afterCapture() (the chain-length lookahead) both mark instead of
+    removing, so a king can no longer re-cross a just-emptied square.  The marker is
+    never rendered.
 
-14. Resign is immediate and unconfirmed, always attributed to the player to move.
-    Draw has a two-step confirm; Resign does not, so a stray click ends the game
-    and writes stats with no undo.  Acceptable for hot-seat; a confirm could be
-    added if it proves annoying in practice.
+14. Resign now requires an explicit confirm.
+    doResign() shows the same in-window Yes/No overlay Draw uses ("<player>, are you
+    sure you want to resign?"); Yes runs finishResign(), No continues the game.  A
+    stray click no longer ends the game with no undo.
+
+--------------------------------------------------------------------------------
+REMAINING (by design / out of scope / edge cases not worth the churn)
+--------------------------------------------------------------------------------
 
 15. Player-select button states run slightly ahead of the actual selection:
     clicking "Player 1" enables "Player 2" before Player 1 is confirmed, and

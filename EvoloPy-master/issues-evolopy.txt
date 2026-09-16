@@ -1,0 +1,156 @@
+EvoloPy-master — Issues Log (to revisit)
+=========================================
+Reviewed: 2026-09-14
+Version reviewed: v4.0.6 (synced to upstream 7ossam81/EvoloPy master @ ce97ecf)
+Scope: static review only. NOT run/tested. Paths are relative to EvoloPy-master/EvoloPy-master/.
+
+Severity legend: [BUG] wrong behavior  [PKG] packaging/deps  [QUAL] design/quality  [DOC] documentation
+
+
+================================================================
+CORRECTNESS / BUGS
+================================================================
+
+[BUG] 1. "F24" is advertised but does not exist -> crash.
+  - api.py:97-98  available_benchmarks() lists "F24".
+  - README.md and examples/example.py comments list F24 as selectable.
+  - benchmarks.py getFunctionDetails() only defines F1..F23 (no F24, no def F24).
+  - Effect: run_optimizer(..., "F24") passes API validation (it's in the list) but
+    getFunctionDetails("F24") returns the string "nothing"; optimizer.py then does
+    func_details[0] -> "n" and getattr(benchmarks,"n") -> AttributeError at runtime.
+  - Fix: either add F24 to benchmarks or remove "F24" from api.py list + README + examples.
+
+[BUG] 2. API silently ignores lb/ub/dim for built-in benchmark functions.
+  - api.py run_optimizer() Case 1 (objective_func is a str), lines ~189-214.
+  - dim/lb/ub parameters are accepted but only params={PopulationSize,Iterations} is
+    passed to optimizer_run(); bounds/dim come from getFunctionDetails() instead.
+  - Effect: run_optimizer("PSO","F1", dim=5, lb=-1, ub=1) runs with dim=30, lb=-100,
+    ub=100 — user input is silently discarded. Same in run_multiple_optimizers() Case 1.
+  - Worse: the per-run <optimizer>_config.txt (api.py:221-233) records the IGNORED
+    dim/lb/ub, so the saved config misrepresents what actually ran.
+  - Fix: for string benchmarks either honor caller dim/lb/ub, or make them error/warn,
+    and write the ACTUAL details from getFunctionDetails() into config.txt.
+
+[BUG] 3. F13 returns a length-1 numpy array, not a scalar.
+  - benchmarks.py F13 (lines ~92-101): if x.ndim==1 it reshapes to (1,dim) and all terms
+    stay 2-D, so it returns np.array([value]) of shape (1,).
+  - Every optimizer calls objf(pos[i,:]) with a 1-D vector, so F13 alone returns an array
+    while F1..F12, F14.. return Python/np scalars.
+  - Effect: fitness comparisons still "work" (1-elem array truthiness) but best_score,
+    convergence entries, and CSV cells for F13 become arrays -> inconsistent output,
+    possible downstream breakage in plots/stats. Latent, benchmark-specific.
+  - Fix: return a scalar (e.g. float(result[0]) or compute in 1-D) like the other F*.
+
+[BUG] 4. Redundant + fragile "best of parallel runs" selection.
+  - optimizer.py:285  best_result_idx = argmin([objf(sol.bestIndividual) for sol in ...]).
+  - Re-evaluates the objective instead of using sol.best_score (already populated).
+  - For stochastic objectives (F7 adds np.random.uniform noise) the re-evaluation differs
+    from the recorded score, so the "best" pick can be inconsistent with best_score/CSVs.
+  - Fix: select via min(parallel_results, key=lambda s: s.best_score), matching the
+    sequential path (optimizer.py:350).
+
+[BUG] 5. Fallback path can crash / is meaningless.
+  - optimizer.py:349-353  if all_run_results is empty, best_result = selector(...) is called
+    once more. If the optimizer name was invalid, selector() returns None (see :312), and
+    line 359 best_result.bestIndividual -> AttributeError. If NumOfRuns==0 the earlier
+    sum(executionTime)/NumOfRuns (:343) already divides by zero.
+  - Fix: guard NumOfRuns>=1; if no valid results, skip this optimizer cleanly instead of
+    re-running selector.
+
+
+================================================================
+PACKAGING / DEPENDENCIES
+================================================================
+
+[PKG] 6. requirements.txt forces a full torch install; contradicts "optional GPU".
+  - requirements.txt last line pins torch>=1.7.0 (only excluded on macOS arm64).
+  - setup.py:55 and pyproject.toml correctly make torch an OPTIONAL extra: gpu=[torch].
+  - README.md:31 says GPU is opt-in via `pip install EvoloPy[gpu]`.
+  - Effect: `pip install -r requirements.txt` pulls ~800MB torch for everyone, including
+    CPU-only users — directly contradicting the documented/optional design.
+  - Fix: drop torch from requirements.txt (rely on the [gpu] extra), or document it.
+
+[PKG] 7. License metadata says MIT, but the actual license is Apache-2.0.
+  - LICENSE.txt is the Apache License 2.0 (upstream project license).
+  - setup.py:34 and pyproject.toml:17,22 declare license = MIT / "MIT License" classifier.
+  - Effect: incorrect license metadata on any built/published package.
+  - Fix: set license to Apache-2.0 in setup.py + pyproject.toml to match LICENSE.txt.
+
+[PKG] 8. Two packaging systems coexist (setup.py + pyproject.toml + setup.cfg).
+  - Deps are duplicated across setup.py install_requires and pyproject.toml dependencies;
+    easy to drift out of sync (already differ from requirements.txt re: torch).
+  - Fix: pick pyproject.toml as source of truth; reduce setup.py to a shim or remove.
+
+
+================================================================
+DESIGN / QUALITY
+================================================================
+
+[QUAL] 9. Global warnings suppression as an import side effect.
+  - optimizer.py:34  warnings.simplefilter(action="ignore") runs at import time.
+  - Effect: importing EvoloPy silences ALL warnings for the entire host process,
+    hiding NumPy/user deprecation and runtime warnings well beyond EvoloPy's own code.
+  - Fix: scope suppression narrowly (warnings.catch_warnings() around the noisy call)
+    or filter only the specific category/module.
+
+[QUAL] 10. Massive duplicated dispatch + export logic.
+  - selector() (optimizer.py:37) and get_optimizer_function() (:76) are two parallel
+    14-branch if/elif ladders; api.get_optimizer_map() is a third registry of the same set.
+  - The CSV/plot export blocks are copy-pasted across optimizer.run(), api.run_optimizer(),
+    and api.run_multiple_optimizers() (headers, details/avg/best writers duplicated ~4x).
+  - Effect: high drift risk (already visible: "BestFitness" vs "BestScore" header naming
+    differs between optimizer.py:270/329 and api.py:330/357).
+  - Fix: single optimizer registry dict; extract shared CSV/plot export helpers.
+
+[QUAL] 11. Heavy imports pulled in unconditionally.
+  - optimizer.py:24 imports parallel_utils at module load, which imports psutil (hard dep)
+    and attempts torch/cupy. Even purely sequential use requires psutil to be installed.
+  - api.py guards parallel_utils import (PARALLEL_AVAILABLE) but optimizer.py does not.
+  - Fix: make psutil/torch imports lazy inside the parallel branches.
+
+[QUAL] 12. Inconsistent result-object contract.
+  - solution has both .best and .best_score; optimizer.py sets best = best_score = objf(x)
+    (recomputed), while optimizers set best_score directly. api.py hedges with
+    getattr(x,'best_score', x.best) in several places — signals the contract isn't trusted.
+  - typo: solution.maxiers (should be maxiters) — carried through all consumers.
+  - Fix: define one canonical fitness field; fix the maxiers typo consistently.
+
+[QUAL] 13. Dead / commented-out scaffolding left in.
+  - optimizer.py:29 (# import os), :427-429 duplicated commented convergence-append block.
+  - GA.py is 426 lines (far larger than peers, e.g. DE.py 125) — worth checking for
+    dead/duplicated helper code.
+  - Fix: remove commented cruft; audit GA.py for unused code.
+
+[QUAL] 14. results_directory created even when nothing is exported.
+  - optimizer.py:173 always mkdir(timestamp/) at run start; if all Export_* flags are False
+    an empty timestamped dir is still created (and per-function/plots subdirs at :212-213).
+  - Fix: create directories lazily, only when an export actually writes.
+
+
+================================================================
+DOCUMENTATION
+================================================================
+
+[DOC] 15. Benchmark inventory mismatch (ties to BUG #1).
+  - README "F1..F24" / example.py comments vs actual F1..F23 + ackley/rosenbrock/
+    rastrigin/griewank. F20..F23 exist in code but README's usage list is inconsistent.
+  - Fix: publish one authoritative benchmark list once #1 is resolved.
+
+[DOC] 16. Python version claims are stale/contradictory.
+  - README badge + setup.py/pyproject require-python say ">=3.6", but the code uses
+    f-strings extensively and typing features consistent with 3.6+; more importantly the
+    original toolbox README elsewhere referenced 3.6. Verify the real floor (torch>=1.7,
+    numpy>=1.19 effectively push the minimum higher than 3.6 in practice).
+  - Fix: set requires-python to the actually-supported/tested floor.
+
+
+================================================================
+SUGGESTED TRIAGE ORDER
+================================================================
+  1) #1 F24 crash            (user-facing, trivial to hit)
+  2) #2 ignored dim/lb/ub    (silent wrong results via the advertised API)
+  3) #6 torch in requirements(install-time pain for all CPU users)
+  4) #7 license metadata     (legal/publishing correctness)
+  5) #3 F13 array return     (benchmark-specific correctness)
+  6) #4/#5 parallel/fallback (robustness)
+  7) remaining QUAL/DOC cleanups

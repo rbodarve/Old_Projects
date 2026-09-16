@@ -51,7 +51,8 @@ small **SQLite** file that the app creates automatically on first launch.
 - **Points system:** +1 per completed turn (a simple move, a single capture, or a whole
   multi-jump chain each count once), +5 for crowning a King, +10 to the opponent on a
   resignation, and no bonus for a draw.
-- **Resign** and **Draw** buttons, plus automatic win detection when a player has no legal move.
+- **Resign** (with a Yes/No confirmation, so a stray click can't end the game) and **Draw**
+  buttons, plus automatic win detection when a player has no legal move.
 - Per-player statistics and two leaderboards: **By Points** and **By Moves** (fewest moves
   to *win* a game).
 - **Zero setup:** stats live in a local SQLite database at `~/.dama/dama.db`,
@@ -123,6 +124,8 @@ To compile and launch directly during development:
   the top rows and moves *down*. RED moves first.
 - Captures are mandatory, multi-jumps must be completed in one turn, and (in this variant)
   ordinary men may capture backward.
+- During a multi-jump, captured pieces stay on the board as blockers until the whole chain
+  ends: a flying King can't re-cross, land on, or re-capture a piece it has already jumped.
 - **Deferred promotion:** reaching the back row crowns the piece and ends the turn, unless a
   further capture is available from that square.
 - **Scoring:** +1 per completed turn · +5 for crowning a King · +10 to the opponent on a
@@ -164,8 +167,13 @@ runnable and distributable today:
 - **Game-logic corrections:** the points system now attributes each turn's score to the
   correct player and counts a multi-jump chain once; promotion follows the deferred-promotion
   rule; a **Draw** option and its statistics were added; and the "fewest moves" leaderboard was
-  fixed to track *fewest moves to win*.
-- **UI & interaction fixes:** the ✕ button now cancels the player-setup flow at any step; the
+  fixed to track *fewest moves to win*. During a multi-jump, jumped pieces now remain on the
+  board as blockers until the chain ends, so a flying King can no longer re-cross a
+  just-emptied square; and a 0-move win (from an immediate resignation) no longer collides with
+  the "no record yet" sentinel that hid it from the **By Moves** table.
+- **UI & interaction fixes:** **Resign** now asks for confirmation (matching **Draw**) so a
+  stray click no longer ends the game with no undo; the ✕ button now cancels the player-setup
+  flow at any step; the
   board is larger and uses higher-contrast squares so both colours read clearly; edge-of-board
   clicks are hit-tested correctly; and the statistics tables auto-size their columns with
   clearer headers (the opponent name now shows as **Opponent (Pts)** / **Opponent (Moves)**
@@ -179,13 +187,17 @@ runnable and distributable today:
 No explicit license file is bundled in this folder — it is part of a personal
 `Old_Projects` archive. Add a `LICENSE` before redistributing.
 
-## Acknowledgements
+## Acknowledgements & Sources
 
 - **README template:** structured after the
   [Amazing GitHub Template](https://github.com/dec0dOS/amazing-github-template) by **dec0dOS**,
   discovered via the [**awesome-readme**](https://github.com/matiassingers/awesome-readme) list
   curated by **Matias Singers**.
 - **Game foundation:** the board and Swing UI descend from the classic educational checkers
-  example in David J. Eck's *Introduction to Programming Using Java*.
+  example in David J. Eck's *Introduction to Programming Using Java*
+  (<https://math.hws.edu/javanotes/>).
+- **Game rules:** Filipino *Dama* (dama/damath draughts) conventions — mandatory capture,
+  multi-jump chains, and king promotion — with the backward-capture and deferred-promotion
+  house rules described under [Rules & Scoring](#rules--scoring).
 - **Libraries & tooling:** [xerial/sqlite-jdbc](https://github.com/xerial/sqlite-jdbc) and
   [Gradle](https://gradle.org/).
