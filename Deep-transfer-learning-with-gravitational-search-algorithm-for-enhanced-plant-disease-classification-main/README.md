@@ -84,7 +84,7 @@ fabricated its accuracy (an `accuracy × 2` metric).
 | 4. Input pipeline | `cache` / `shuffle` / `prefetch` for GPU throughput |
 | 5. Model builder | MobileNetV2 + augmentation + rescaling + dropout/dense head |
 | 6. GSA | Metaheuristic search over `[0,1]^3`, decoded to real hyperparameters |
-| 7. Run search | Searches on a training subset + full val; reports best config |
+| 7. Run search | Searches on a **cached** training subset (every candidate sees identical data) + full val; reports best config |
 | 8. Final training | Phase 1 (frozen head) → Phase 2 (fine-tune) with EarlyStopping |
 | 9. Evaluation | Test accuracy, `classification_report`, confusion matrix |
 | 10. Save | Exports `plant_disease_mobilenetv2_gsa.keras` |
@@ -96,16 +96,18 @@ fabricated its accuracy (an `accuracy × 2` metric).
 | `load_split(name, shuffle)` | Load a `train`/`valid`/`test` directory into a `tf.data.Dataset` |
 | `build_model(num_classes, dense_units, dropout_rate, learning_rate)` | Assemble + compile the MobileNetV2 transfer-learning model; returns `(model, base)` |
 | `decode(pos)` | Map a GSA position in `[0,1]^3` to `(learning_rate, dropout, dense_units)` |
-| `fitness(pos, train_ds, val_ds, epochs)` | Train a candidate and return `1 − val_accuracy` (to minimize) |
+| `fitness(pos, train_ds, val_ds, epochs)` | Train a candidate and return `1 − last-epoch val_accuracy` (to minimize) |
 | `gsa(train_ds, val_ds, ...)` | Full Gravitational Search Algorithm; returns best position, fitness, and convergence history |
 
 ## How the GSA Works
 
-Each agent is a candidate hyperparameter vector. Per iteration it (1) evaluates fitness,
-(2) assigns **masses** (better solutions heavier), (3) computes **gravitational force** from the
-*kbest* heaviest agents with a decaying gravitational constant `G(t)`, and (4) derives
-acceleration → velocity → new position. `kbest` shrinks from all agents to 1, shifting from
-exploration to exploitation — following Rashedi et al. (2009); see [Sources](#acknowledgements--sources).
+Each agent is a candidate hyperparameter vector. Per iteration it (1) evaluates fitness
+(`1 −` last-epoch validation accuracy, measured on a **fixed, cached** training subset so all
+candidates are compared on the same data), (2) assigns **masses** (better solutions heavier),
+(3) computes **gravitational force** from the *kbest* heaviest agents with a decaying
+gravitational constant `G(t)`, and (4) derives acceleration → velocity → new position. `kbest`
+shrinks from all agents to 1, shifting from exploration to exploitation — following
+Rashedi et al. (2009); see [Sources](#acknowledgements--sources).
 
 ## Caveats
 
@@ -117,7 +119,9 @@ exploration to exploitation — following Rashedi et al. (2009); see [Sources](#
   60-batch training subset are tuned to finish quickly on Colab — raise them for better tuning.
 - **Fallback test split.** If the export has no `test/` folder, the test set is carved from
   validation, so those metrics are less independent.
-- **Reproducibility.** A fixed `SEED` is used, but full determinism on GPU is not guaranteed.
+- **Reproducibility.** `tf.keras.utils.set_random_seed(SEED)` seeds TensorFlow (weight init,
+  dropout, augmentation), NumPy, and Python at startup, so runs are far more comparable — but
+  full determinism on GPU is still not guaranteed.
 
 ## Acknowledgements & Sources
 
