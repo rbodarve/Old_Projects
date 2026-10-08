@@ -56,6 +56,12 @@ N=6→4, N=8→92, N=10→724).
 - **`queens_heuristic.cpp` — type fix:** `leastval` changed from `int` to
   `long int` to match the `long int` priority values it holds (avoids truncation
   at large N). Also removed an unused `ctr1` variable (last compiler warning).
+- **`queens_heuristic.cpp` — segfault on Windows (MinGW g++):** the insertion sort
+  in `motionorder()` tested `secondOrderPriority[..][motionOrder[..][p-1]]` *before*
+  `p-1>=0`, so at `p=0` it read `motionOrder[..][-1]` (heap memory before the array)
+  and used it as an index. On Linux/glibc the stray read happened to land in mapped
+  memory; on the Windows heap it faults. Swapped the operands so the bounds check
+  short-circuits first.
 - **Input validation (all three):** sizes `N < 1` are now rejected with a clear
   message and a non-zero exit instead of producing garbage or empty output.
 - **Fixed-array bounds (all three):** the vintage fixed marker arrays cap the

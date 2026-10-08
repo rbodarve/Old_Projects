@@ -172,7 +172,7 @@ for(counter1=0;counter1<N1;counter1++)
 	{ temp1=secondOrderPriority[counter1][counter2];
 	  val1=motionOrder[counter1][counter2];
 	  p=counter2;
-	  while(temp1<secondOrderPriority[counter1][motionOrder[counter1][p-1]] && p-1>=0)
+	  while(p-1>=0 && temp1<secondOrderPriority[counter1][motionOrder[counter1][p-1]])
 	  {motionOrder[counter1][p]=motionOrder[counter1][p-1];p=p-1;};
 	  motionOrder[counter1][p]=val1;
 	}
