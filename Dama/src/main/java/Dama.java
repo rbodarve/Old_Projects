@@ -777,7 +777,7 @@ public final class Dama extends JPanel{
 				for(int i = 0; i < legalMoves.length; i++)
 					highlight(g, legalMoves[i].fromRow, legalMoves[i].fromCol);
 				if(selectedRow >= 0){
-					g.setColor(Color.white);
+					g.setColor(Color.BLUE);   // white was hard to see on the cream squares
 					highlight(g, selectedRow, selectedCol);
 					g.setColor(Color.green);
 					for(int i = 0; i < legalMoves.length; i++)

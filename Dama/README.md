@@ -185,6 +185,8 @@ runnable and distributable today:
   after WSL was retired; the overlays are kept because they work the same on Windows.
 - **Scoreboard text:** a long player name is now shortened with "…" so the scoreboard line fits
   its label while the points and moves stay whole, and a count of one reads "1 move".
+- **Selection highlight:** the selected piece is now outlined in blue, because the old white
+  outline was hard to see on the cream squares.
 
 ## License
 
