@@ -171,3 +171,33 @@ garbage-collected arrays); the run is CPU/time-bound, not memory-bound.
   An era artifact, not an algorithmic issue — left as period-authentic per request.
 - **Unused-local warnings** (`index`, `position`). Dead locals with no effect on behavior.
 - **The `.txt` reference dumps and the `.rar` archive.** Not compilable source.
+
+---
+
+## 6. Simulation test run (2026-10-08, javac/java 21.0.12)
+
+All four programs were run on the **same 100 random instances** (seed 170; 1-8 items,
+weight 1-20, profit 1-50, capacity 1-60). Each answer was compared to a brute-force
+optimum over all 2^n subsets. The `.java.txt` files were copied to `.java` in a temporary
+folder. `KnapsackBandB` needs a `Queue` class (`enqueue`/`dequeue`/`isEmpty`) that is not in
+this folder; a minimal FIFO test stub was used. The two textbook solvers received items
+sorted by profit/weight, as their bound requires.
+
+| Program | Correct | Wrong | Crash |
+|---------|---------|-------|-------|
+| `ZeroOneKnapsack` (DP) | 100 | 0 | 0 |
+| `Knapsack.java` (GUI solver, via its real file reader) | 100 | 0 | 0 |
+| `KnapsackBacktrack.java.txt` | 88 | 0 | 12 |
+| `KnapsackBandB.java.txt` | 75 | 0 | 25 |
+
+Own `main()` demos: `ZeroOneKnapsack` takes Silver + Gold = 90 (optimal); `KnapsackBacktrack`
+and `KnapsackBandB` both report items 1, 3 = $90 (optimal). The Swing window opens without errors.
+
+**Defects found (recorded, not fixed):**
+
+| # | Where | Finding |
+|---|-------|---------|
+| 1 | `KnapsackBacktrack`, `KnapsackBandB` | When no item fits, `bestList` stays `null` and `findSolution` throws `NullPointerException` at `bestList.size()` (12/100 instances each). |
+| 2 | `KnapsackBandB` | A solution is recorded only if `u.size < K` (strict). An optimum that fills the knapsack exactly is never recorded, so `maxValue` stays low and a last-level node is still expanded: `s[level+1]` throws `ArrayIndexOutOfBoundsException`. All 13 such crashes had an exact-fill optimum. Smallest case: capacity 5, one item (p10, w5). |
+| 3 | `KnapsackBandB` | Does not compile as shipped: it uses a `Queue` class with `enqueue`/`dequeue` that is not in the folder (`java.util.Queue` is an interface with other method names). |
+| 4 | `Knap.inp` vs `Knapsack.java` reader | The reader treats every one-number line as the capacity. `Knap.inp` has `100` then `5` (the item count), so the capacity becomes 5 and the GUI shows **Max Profit: 0**. With the `5` line removed it gives 90 (optimal). |

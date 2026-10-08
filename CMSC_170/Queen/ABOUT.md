@@ -80,3 +80,30 @@ g++ queens_backtrack.cpp -o queens_backtrack && ./queens_backtrack
 ```
 
 Enter the board size N when prompted (e.g. 8 → 92 solutions).
+
+## Simulation test run (2026-10-08)
+
+Built with g++ (MinGW-w64, `-Wall -Wextra -O2`) and javac 21 in a temporary folder.
+Each program was run **100 times** with N drawn at random from 1-12 (seed 170; every N
+from 1 to 12 occurs 5-13 times). A driver fed the real stdin (N, then `1` at every
+"continue" prompt) and checked every printed board: valid placement, no duplicates, and the
+solution count equal to the known value (1, 0, 0, 2, 10, 4, 40, 92, 352, 724, 2680, 14200).
+`NQueens` was driven through its public `placeNQueens()`. 147,041 boards checked per program.
+
+| Program | Result |
+|---------|--------|
+| `queens_backtrack.cpp` | 100/100 correct |
+| `queens2.cpp` | 100/100 correct |
+| `queens_heuristic.cpp` | 100/100 correct |
+| `NQueens.java.txt` | 100/100 correct; own `main()` prints 2, 10, 92 for N = 4, 5, 8 |
+
+Edge inputs: N = 0, -3, and non-numeric input are rejected by all three; N = 51 is
+rejected by `queens2`, N = 251 by `queens_heuristic`. Answering `0` at the first prompt
+stops after 10 boards in all three.
+
+**Findings (recorded, not fixed):**
+
+| # | Where | Finding |
+|---|-------|---------|
+| 1 | `queens_backtrack.cpp`, `queens_heuristic.cpp` `printArray` | `choice` is an uninitialized local. If the answer at the "continue" prompt is not a number, `scanf` fails and `choice` keeps a garbage value (undefined behavior). Observed with input `x`: backtrack stopped after 10 boards, heuristic printed all 92. `queens2.cpp` declares it `static`, so it is 0 and the program stops. |
+| 2 | `queens_heuristic.cpp:120` | With `-O2`, g++ warns `'leastval' may be used uninitialized`. The "no warnings" note above holds only without optimization. Answers were correct in all 100 runs. |

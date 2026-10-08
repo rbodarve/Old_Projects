@@ -151,3 +151,72 @@ non-matching edge), matching the documented "returns null" exception.
 `UndirectedGraphList.removeEdge()` if an edge is removed using the opposite vertex order
 from how it was added — a case not exercised anywhere in the folder. Hardening it would be
 a broader semantic change than the reported bugs, so it was deliberately left as-is.
+
+---
+
+## 6. Simulation test run (2026-10-08, javac/java 21.0.12)
+
+All 16 files compile (deprecation/unchecked notes only). Classes were compiled to a
+temporary directory, so the committed `.class` files were not touched.
+
+**Demos (as shipped, `GraphMatrixDirected`):**
+- `GraphTest`: 10 vertices / 37 edges, then `removeEdge(NewYork, SanFrancisco)` and
+  `remove(Denver)` (4 edges) give 9 / 32. The heap listing prints all 32 edges in
+  ascending order. Correct.
+- `DepthFirstSearch`: all 13 edge classifications checked by hand against discovery/finish
+  times (e.g. `9->10` is cross: 10 finished at 17, 9 discovered at 18). Correct.
+
+**Demos with the commented-out `DirectedGraphList` line swapped in:** `GraphTest` gives the
+same counts and the same sorted edge set. `DepthFirstSearch` visits neighbors in a
+different order, so the tree is different, but all 13 classifications are valid for that tree.
+
+**Interface test (29 checks per class, same graph A-B, A-C, B-C, C-D):**
+
+| Class | Result |
+|-------|--------|
+| `GraphMatrixDirected` | 29/29 |
+| `GraphMatrixUndirected` | 29/29 |
+| `UndirectedGraphList` | 28/29 |
+| `DirectedGraphList` | 25/29 |
+
+**Defects / inconsistencies found (recorded, not fixed):**
+
+| # | Where | Finding |
+|---|-------|---------|
+| 1 | `GraphListVertex.removeEdge` | Returns the probe edge `e` (built with a `null` label), not the stored edge. So `removeEdge(v1, v2)` on both list graphs returns `null` instead of the label, against its documented post-condition. The edge is still removed. |
+| 2 | `GraphList.degree` vs `GraphMatrix.degree` | List graphs return out-degree only; matrix graphs return out + in for directed graphs. Same directed graph: `degree(C)` is 1 (list) vs 3 (matrix). The interface comment does not decide which is right. |
+| 3 | `GraphList.iterator` vs `GraphMatrix.iterator` | List graphs iterate `GraphListVertex` objects (`dict.values()`); matrix graphs iterate labels (`dict.keySet()`). Code that sorts or casts the results works for one family and throws `ClassCastException` for the other. Printing works for both because `toString` gives the label. |
+
+### 6.1 Randomized simulation: 100 runs per program (2026-10-08)
+
+Each check ran 100 times with random input (fixed seeds). The oracle is a plain
+set-of-vertices / map-of-edges model in the test, not the classes under test.
+
+**Random operation sequences** (1-8 start vertices, then 40 random `addEdge`, `removeEdge`,
+`add`, `remove`). After **every** operation the test compares `size`, `edgeCount`, `edges()`,
+`iterator()`, `neighbors`, `containsEdge` and `getEdge` (label, and both orientations for
+undirected graphs) with the model.
+
+| Class | Runs correct | `removeEdge` wrong label | `degree` differences |
+|-------|-------------:|-------------------------:|----------------------|
+| `GraphMatrixDirected` | 100/100 | 0 | 0 vs out + in; 6111 vs out-degree |
+| `GraphMatrixUndirected` | 100/100 | 0 | 0 |
+| `DirectedGraphList` | 100/100 | 616 (defect 1) | 6111 vs out + in; 0 vs out-degree (defect 2) |
+| `UndirectedGraphList` | 100/100 | 612 (defect 1) | 0 |
+
+Same runs, but undirected `removeEdge` called with a random orientation:
+`GraphMatrixUndirected` 100/100, **`UndirectedGraphList` 5/100** (defect 4).
+
+**`DepthFirstSearch`** (its private `dfs` called by reflection on 100 random directed graphs,
+1-10 vertices, edge probability 0.25). Every edge's tree/back/forward/cross label was
+compared with an independent DFS that uses the same neighbor order: **100/100** on
+`GraphMatrixDirected` and **100/100** on `DirectedGraphList`.
+
+**`BinaryHeap`** (`GraphTest`'s sorter): 100 random arrays of 0-59 edges; the `deleteMin`
+order equals `Collections.sort`: **100/100**.
+
+**New defect (this was the "known remaining item" in section 5):**
+
+| # | Where | Finding |
+|---|-------|---------|
+| 4 | `UndirectedGraphList.removeEdge` | Removing an undirected edge with the opposite orientation from how it was added (`removeEdge(v,u)` for an edge added as `addEdge(u,v)`) does not remove it: `edgeCount` stays the same and the edge is still listed. Root cause: `Edge.equals` compares orientation. `GraphMatrixUndirected` handles both orientations. |

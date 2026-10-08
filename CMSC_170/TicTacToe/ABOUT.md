@@ -172,3 +172,25 @@ line of play. **Conclusion: no game-logic errors; the AI plays optimally (never 
 were corrected, the brute-force check proved it optimal. A minimax rewrite would be the
 *same result* with different code; the author's structure, method names, and the GUI flow
 were kept intact and only the three defects were repaired.
+
+---
+
+## 6. Simulation test run (2026-10-08, javac/java 21.0.12)
+
+**100 games** were played through the real `TicTacToeMain` window (created, not shown):
+each human move was a `doClick()` on the board button, and a helper thread answered every
+"Are you sure?" dialog with **Yes**. Only the opening dialogs (go first? / icon) were
+skipped by calling the private `play(choice, confirm)` directly. Seed 170.
+
+- 50 games human first, 50 computer first (with `play()`'s random opening move); X and O alternate.
+- 50 games against a random human, 50 against a greedy human (win if possible, else block, else random).
+- After each game an independent judge read the button texts and checked: the game ended;
+  the status text matches the real outcome; the buttons match `TicTacToeAI`'s board; move
+  counts are legal for who went first.
+
+| AI wins | Draws | AI losses | Games with problems | Dialogs answered |
+|--------:|------:|----------:|--------------------:|-----------------:|
+| 61 | 39 | **0** | **0** | 350 (one per human move) |
+
+No defects found. Note for automated testing: every board click opens a modal
+"Are you sure?" dialog (`actionPerformed`), so a driver that clicks buttons must answer it.
