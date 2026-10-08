@@ -28,6 +28,7 @@ Gravitational Search Algorithm (GSA) for hyperparameter tuning.**
 - [Notebook Flow](#notebook-flow)
 - [Key Functions](#key-functions)
 - [How the GSA Works](#how-the-gsa-works)
+- [Results](#results)
 - [Caveats](#caveats)
 - [Acknowledgements & Sources](#acknowledgements--sources)
 
@@ -72,6 +73,9 @@ fabricated its accuracy (an `accuracy × 2` metric).
 3. Confirm the Roboflow `workspace` / `project` / `version` (Section 2) match your dataset.
 4. Run all cells top to bottom. The final model is saved to
    `plant_disease_mobilenetv2_gsa.keras`.
+5. The results (plots, CSV and JSON files) are written to `training_stats/`. In Colab, the
+   folder is zipped and downloaded to your computer. The run reported below is kept in
+   [`results/`](results/).
 
 ## Notebook Flow
 
@@ -80,14 +84,15 @@ fabricated its accuracy (an `accuracy × 2` metric).
 | 1. Configuration | Image size, batch size, epoch counts, GSA search budget |
 | 2. Download dataset | Roboflow pull; API key from **Colab Secrets** (`ROBOFLOW_API_KEY`) |
 | 3. Load splits | Loads `train/valid/test`; carves a test set from val if none exists |
-| — Guard | Asserts the class set is PlantVillage-only (rejects coffee/other classes) |
-| 4. Input pipeline | `cache` / `shuffle` / `prefetch` for GPU throughput |
+| — Guard | Three asserts: the same class set (in the same order) across all splits, no malformed class-folder names, and PlantVillage-only classes (rejects coffee/other) |
+| 4. Input pipeline | `shuffle` / `prefetch` for GPU throughput; train is **not** cached (the full set would need ~113 GB of RAM), valid and test are cached |
 | 5. Model builder | MobileNetV2 + augmentation + rescaling + dropout/dense head |
 | 6. GSA | Metaheuristic search over `[0,1]^3`, decoded to real hyperparameters |
 | 7. Run search | Searches on a **cached** training subset (every candidate sees identical data) + full val; reports best config |
 | 8. Final training | Phase 1 (frozen head) → Phase 2 (fine-tune) with EarlyStopping |
 | 9. Evaluation | Test accuracy, `classification_report`, confusion matrix |
 | 10. Save | Exports `plant_disease_mobilenetv2_gsa.keras` |
+| 11. Save statistics | Writes plots and CSV/JSON results to `training_stats/`; in Colab the folder is zipped and downloaded |
 
 ## Key Functions
 
@@ -109,6 +114,36 @@ gravitational constant `G(t)`, and (4) derives acceleration → velocity → new
 shrinks from all agents to 1, shifting from exploration to exploitation — following
 Rashedi et al. (2009); see [Sources](#acknowledgements--sources).
 
+## Results
+
+One run on 2026-10-08 on a Colab GPU, with the Roboflow dataset `villagedata/plantvillage-8dgn3`
+version 2. All files are in [`results/`](results/).
+
+| Metric | Value |
+|--------|-------|
+| Test images / classes | 5,568 / 38 |
+| Test accuracy | 0.9822 |
+| Test loss | 0.064 |
+| Macro F1 | 0.977 |
+| Misclassified test images | 99 |
+| Training epochs | 7 head + 10 fine-tune |
+| Best validation accuracy | 0.982 (epoch 14) |
+
+**GSA best hyperparameters:** learning rate 0.00248, dropout 0.238, dense units 501. The
+validation accuracy during the search was 0.8215, and it did not change across all 5 iterations.
+
+**Weakest classes (lowest recall) and their main confusions:**
+
+| Class | Recall | Main confusions (test images) |
+|-------|--------|-------------------------------|
+| Corn Cercospora / Gray leaf spot | 0.80 | Northern Leaf Blight (10) |
+| Tomato spider mites | 0.83 | Tomato healthy (16), Target Spot (14) |
+| Tomato early blight | 0.86 | Late blight (4), Septoria leaf spot (4) |
+
+![Training curves](results/training_curves.png)
+![GSA convergence](results/gsa_convergence.png)
+![Confusion matrix](results/confusion_matrix.png)
+
 ## Caveats
 
 - **Roboflow config required.** The `workspace`/`project`/`version` and API key must be set;
@@ -122,6 +157,13 @@ Rashedi et al. (2009); see [Sources](#acknowledgements--sources).
 - **Reproducibility.** `tf.keras.utils.set_random_seed(SEED)` seeds TensorFlow (weight init,
   dropout, augmentation), NumPy, and Python at startup, so runs are far more comparable — but
   full determinism on GPU is still not guaranteed.
+- **GSA gain unproven.** In the reported run, the GSA convergence was flat (0.8215 in all 5
+  iterations), and there is no baseline run without GSA, so any GSA gain is unproven.
+- **Fine-tune hit its cap.** The fine-tune phase stopped at the 10-epoch cap, not by EarlyStopping.
+- **Class imbalance.** The test set has 14 to 562 images per class, so per-class metrics vary in
+  reliability.
+- **Lab imagery.** PlantVillage photos are taken in lab conditions, so accuracy on field photos
+  will be lower.
 
 ## Acknowledgements & Sources
 
