@@ -116,8 +116,8 @@ Rashedi et al. (2009); see [Sources](#acknowledgements--sources).
 
 ## Results
 
-One run on 2026-10-08 on a Colab GPU, with the Roboflow dataset `villagedata/plantvillage-8dgn3`
-version 2. All files are in [`results/`](results/).
+One run on 2026-10-08 on a Colab GPU, with the Roboflow dataset
+[`villagedata/plantvillage-8dgn3`](https://universe.roboflow.com/villagedata/plantvillage-8dgn3) version 2. All files are in [`results/`](results/).
 
 | Metric | Value |
 |--------|-------|
@@ -178,7 +178,7 @@ validation accuracy during the search was 0.8215, and it did not change across a
   images on plant health to enable the development of mobile disease diagnostics.* arXiv:1511.08060.
   See also Mohanty, S. P., Hughes, D. P., & Salathé, M. (2016), *Using Deep Learning for
   Image-Based Plant Disease Detection*, Frontiers in Plant Science, 7, 1419.
-- **Dataset delivery** — [Roboflow](https://roboflow.com/) (workspace `plant-disease-detection-csu61`,
-  project `plant-disease-detection-iefbi`).
+- **Dataset source** — [PlantVillage on Roboflow Universe](https://universe.roboflow.com/villagedata/plantvillage-8dgn3)
+  (workspace `villagedata`, project `plantvillage-8dgn3`), version 2.
 - **Frameworks** — [TensorFlow](https://www.tensorflow.org/)/Keras and
   [scikit-learn](https://scikit-learn.org/) for metrics.

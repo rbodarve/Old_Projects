@@ -1,0 +1,119 @@
+UPMin_System — Issues Log (to revisit)
+======================================
+Reviewed: 2026-10-08
+Scope: static review only. NOT run (no PHP 5 runtime here; core.class.php is missing anyway).
+Paths are relative to UPMin_System/.
+
+Severity legend: [ARCH] structure  [BUG] wrong behavior  [SEC] security  [DOC] README accuracy
+
+
+================================================================
+ARCHITECTURE
+================================================================
+
+[ARCH] 1. All includes use "classes/middletier/<module>/X.class.php" (web-root relative).
+  - The models exist, but under classes/<module>/ (no "middletier" folder).
+  - pt -> classes/, setup -> classes/research/ (userrole). So the tree is a renamed
+    copy of the middletier layer, not missing it entirely.
+  - Two targets do not exist under any name:
+      classes/middletier/msp/research.class.php        (8 includes)
+      classes/middletier/research/fundagency.class.php (research has fundingagency)
+
+[ARCH] 2. core.class.php (base class "Core", Execute(), sqlOK, result) is absent.
+  - 33 includes use "core.class.php", 23 use "/../core.class.php" (absolute path, never valid).
+
+[ARCH] 3. Routers point to files that do not exist (unfinished or moved features).
+  - msp/hei/index.php: school/{department,faculty,unit,programs,projects,publications,
+    awards,copyrights}/*, school/college/{edit,saveEdit}, and faculty/<sub>/{edit,
+    saveEdit,delete} for education/affiliation/awards/copyrights/project/publication/
+    seminars. ~60 dead cases.
+  - msp/project/index.php:69-81 projres/* (only an empty projres folder stub exists).
+  - research/hei/index.php:47-216 includes faculty/... but the folder is at
+    research/researcher/faculty/. All 42 faculty cases in research/hei are dead.
+
+[ARCH] 4. Databases referenced by models are not in systemDump.sql.
+  - classes/research/*  -> database "research"   (not in dump)
+  - classes/hrdo/*.php  -> database "jserp_hrdo" (not in dump; dump has upmin_hrdo)
+  - classes/hrdo/performance/* -> upmin_hrdo.OPES* tables (not in dump)
+
+[ARCH] 5. Duplicate class names across modules: college, department, education,
+  faculty, fund, fundType, personnel, researcher, researcherType, resPosition,
+  sCollege, Training. Fine while modules stay separate; a page that includes both
+  copies dies with "Cannot redeclare class". (No such page found today.)
+
+[ARCH] 6. systemDump.sql and upmin_training.sql are byte-identical in system/ (pure copies).
+
+
+================================================================
+PERSONNEL TRAINING (pt / pt_user) — CORRECTNESS
+================================================================
+
+[BUG] 7. Code and schema disagree on training columns (upmin_training.sql, systemDump.sql).
+  - Schema: `type`, `desc`, `Budget_id`. Code: typ, descr, budget_id.
+  - classes/training.class.php:159-178 save() inserts typ and descr -> unknown column, INSERT fails.
+    Same for update() (:194-195) and classes/training.class_user.php.
+  - participant_training has no `role` column, but savenp() (:207) and addptt() insert role.
+  - So: adding/editing a training and adding a non-UP participant all fail on this schema.
+  - The README's "desc vs descr" note is a symptom of this; the real gap is code vs schema.
+
+[BUG] 8. Training <-> budget link is broken in three places.
+  - classes/budget.class.php getID() uses local $budget_allocated/$budget_actual
+    (undefined) instead of $this->..., and returns Execute()'s result, not an id.
+  - training save() never writes budget_id (column list omits it).
+  - pt/add/delete.inc.php:8 calls $b->delete($training_id): deletes the budget whose
+    id equals the TRAINING id. Training::delete() (:219) does the same, on table
+    "budge" (typo -> error). Right row only by coincidence when both auto-increments
+    stay in step (they do in the sample data).
+
+[BUG] 9. Non-UP participant ids are truncated -> participants vanish.
+  - savenp() (:202-203): pid = name minus last 2 chars + training id.
+  - np_participant.participant_id is varchar(10); participant_training.participant_id
+    is varchar(5). Any pid longer than 5 chars is cut differently in the two tables,
+    so loadNP()'s join np.participant_id = pt.participant_id finds nothing.
+  - Two names sharing the same prefix in one training -> same pid -> PK collision.
+
+[BUG] 10. Training::getID() (:61-73) is malformed (trailing comma before FROM,
+  unclosed "("). Also it inner-joins user/participant_training, so a training with
+  no UP participant can never be found. Same join flaw in search() (:39-56): trainings
+  with no UP participants never appear in search results.
+
+[BUG] 11. training.class_user.php getID() (:163-173) echoes the id; save() and
+  deletenp()/updatenp() also echo SQL; pt/add/savenp.inc.php echoes $id;
+  pt_user/add/delete.inc.php prints $_POST. Output before header("Location") ->
+  "headers already sent", redirect fails (unless output_buffering is on).
+
+[BUG] 12. pt_user/add/savetraining.inc.php uploads to "modules/pt/uploads/", but the
+  folder in this tree is pt/uploads/. The $training object is re-created (:37)
+  before saveFile(); harmless only because saveFile takes explicit args.
+
+[BUG] 13. pt/add/index.php has `case 'delete'` twice (second is dead). Cosmetic.
+
+[BUG] 14. Multiple statements per action with no transaction and only the last
+  sqlOK returned (delete(), deletenp(), savenp()). A failed first query is ignored.
+
+
+================================================================
+SECURITY (expected for 2011 code, listed for completeness)
+================================================================
+
+[SEC] 15. SQL injection in every model (confirmed; README is right).
+[SEC] 16. Unrestricted file upload: pt_user/add/savetraining.inc.php and
+  addfromexisting.inc.php keep the client's extension (no whitelist; $ok and
+  $filetype are unused). Uploading x.php into a web folder = remote code execution.
+[SEC] 17. No access check inside module pages. Role checks exist only in home.inc.php
+  (hides menu links). Deletes are plain GET links (?task=delete&training_id=..)
+  -> any logged-in user, or a CSRF link, can delete. (The missing front controller
+  might have had a check; cannot verify.)
+[SEC] 18. root with empty password in Training() constructor (README is right).
+
+
+================================================================
+README ACCURACY
+================================================================
+
+[DOC] 19. "the middletier directory does not exist" — true as a path, but its content
+  is present as classes/ (see 1). Worth one sentence.
+[DOC] 20. "Six MySQL databases" — models also need "research" and "jserp_hrdo" (see 4).
+[DOC] 21. The descr/desc bullet understates the problem (see 7).
+  Other README claims checked and correct: 354 PHP files, 27 JPGs, getID malformed,
+  echo $sql leftovers, mysql_* API, unquoted $_SESSION[userType] (home.inc.php:33).

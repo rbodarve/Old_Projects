@@ -1,2 +1,8 @@
 Dataset
 .ipynb_checkpoints/
+
+# Notebook outputs when run locally (model, stats, Roboflow download)
+*.keras
+training_stats/
+training_stats.zip
+PlantVillage-*/

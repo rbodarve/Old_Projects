@@ -154,3 +154,125 @@ SUGGESTED TRIAGE ORDER
   5) #3 F13 array return     (benchmark-specific correctness)
   6) #4/#5 parallel/fallback (robustness)
   7) remaining QUAL/DOC cleanups
+
+
+================================================================
+SIMULATION TEST RUN — 2026-10-08 (verified by running)
+================================================================
+Env: conda env `datasci` (numpy 2.3.5, pandas 2.3.3). Nothing fixed; findings only.
+Method: 100 randomized runs per optimizer (14 x 100), fixed seed 0, benchmarks
+F1..F23 minus noisy F7, dim 2..6 for the 30-D functions, pop 5..21, iters 3..15.
+Oracles per run: no exception; f(bestIndividual) == best_score; bestIndividual
+inside [lb, ub]; convergence non-increasing; objective-call count ~ PopSize*iters.
+Benchmarks checked against textbook formulas (Yao et al. 1999).
+
+Existing test suite: 65 passed, 2 failed, 6 errors.
+  - test_benchmarks::test_F12 FAILS -> real bug, see #17.
+  - test_optimizer::test_run_function FAILS -> stale test: expects a file named
+    "experiment*", run() now writes avg.csv/best.csv/details.csv. Test also writes
+    a timestamped results dir into the repo root.
+  - 6 plot tests ERROR: fixture 'mocker' not found -> pytest-mock is not listed
+    in any requirements/extras.
+
+[BUG] 17. F12 (Penalized 1) has the wrong scale factor.
+  - benchmarks.py:89  pi_n = np.pi * dim; return (pi_n / 10) * (...)
+  - Correct factor is pi/n. Code gives (pi*n/10): 3x too large at n=30.
+  - x=[1,2,3]: code 12.311, reference 13.679 (the test's expected value).
+  - Optimum location (x=-1) is unchanged, so only reported fitness values are wrong.
+
+[BUG] 18. F21/F22/F23 (Shekel 5/7/10) depend only on x[0].
+  - benchmarks.py F21-F23: v = np.array(L - aSH[i,:]); (v)*(v.T) is ELEMENTWISE
+    for 1-D arrays; fit.item(0) then keeps only coordinate 0.
+  - Upstream used np.asmatrix, where v*v.T is a dot product. The port broke it.
+  - Proof: F21(4,4,4,4) = -11.112 vs reference -10.153;
+           F21(4,0,0,0) = -11.112 vs reference -0.126 (x[1..3] ignored).
+  - Effect: the known optima (-10.15/-10.40/-10.54) are wrong; any published
+    F21-F23 results from this code are invalid.
+
+[BUG] 19. GA crashes when (PopSize - 2) is odd.  [61/100 runs crashed]
+  - GA.py crossoverPopulaton: for i in range(keep, popSize, 2) writes
+    newPopulation[i+1]; with keep=2 and odd popSize, i+1 == popSize.
+  - Example: pop=9 -> IndexError: index 9 is out of bounds for axis 0 with size 9.
+
+[BUG] 20. GA hangs forever on objectives with plateaus.
+  - GA.py pairSelection: weights = max(score) - score. If only one individual
+    has a nonzero weight, roulette always returns it and the
+    "while parent2Id == parent1Id" loop never ends.
+  - Repro: f(x) = 0 if x[0] < -4.9 else 1, lb=-5, ub=5, dim=2, pop=10, iters=50,
+    np.random.seed(1): did not finish in 30 s (3 of 3 runs). Normal run: < 1 s.
+  - Also: roulette can return None when float cumsum ends below random_num.
+
+[BUG] 21. SSA ignores PopSize.
+  - SSA.py: first line of the body is N = 50, which overwrites the argument.
+  - Every run used 50 salps (e.g. pop=9, iters=12 -> 600 evaluations).
+  - Effect: optimizer comparisons at equal PopSize are unfair to the others.
+
+[BUG] 22. SSA and MFO leave convergence[0] = 0 and run iters-1 iterations.
+  - Both loops start at Iteration = 1; Convergence_curve[0] is never written.
+  - 100/100 runs each. A placeholder 0 is below any positive fitness, so curves
+    "increase" from iter 1 to 2; avg/std per-iteration CSV columns and
+    convergence plots for SSA/MFO are wrong at Iter1.
+
+[BUG] 23. BAT and CS return solutions outside [lb, ub].  [BAT 12/100, CS 9/100]
+  - BAT.py: clips Sol[i] (old position) instead of S[i] (the new candidate),
+    so S[i] is evaluated and stored as `best` without clipping.
+  - CS.py empty_nests(): the abandoned-nest step is never clipped to bounds.
+  - Example: BAT on F23 [0,10] returned x3 = -1.68; CS on F20 [0,1] returned -0.0048.
+
+[BUG] 24. DE: initial fitness written to the wrong index.
+  - DE.py init loop: population_fitness[p] = fitness uses the stale variable p
+    (= PopSize-1) instead of i. All other entries stay +inf.
+  - Effect 1: in generation 1 every trial replaces its parent, even when worse
+    (greedy selection disabled for one generation).
+  - Effect 2: s.leader_solution is a VIEW of population[i,:]; that row is then
+    overwritten, so bestIndividual no longer matches best_score.
+    3/100 runs: F9 best_score 29.63 but f(bestIndividual) = 33.16.
+
+[BUG] 25. JAYA's "worst" solution is never refreshed downward.
+  - JAYA.py: Worst_score starts at 0 and only updates when a fitness is LARGER.
+    After greedy improvement the population worst falls, but Worst_score keeps
+    the initial max. If all fitness values are negative (F8, F14-F23), Worst_pos
+    stays the zero vector forever.
+  - Rao (2016) uses the CURRENT population's worst each iteration.
+  - Found by reading; no oracle in the simulation detects it.
+
+[BUG] 26. HHO compares against the wrong hawk's fitness.
+  - HHO.py soft/hard besiege with progressive dives (Eq. 10, 11):
+    `if objf(X1) < fitness` uses `fitness` left over from the evaluation loop,
+    i.e. the LAST hawk's fitness, not hawk i's. Same bug exists upstream.
+  - Found by reading.
+
+[BUG] 27. MVO roulette-wheel result is discarded.
+  - MVO.py: White_hole_index = RouletteWheelSelection(...) is followed by an
+    unconditional White_hole_index = 0. The white hole is always the best
+    universe; the roulette call is dead code.
+  - Also: RouletteWheelSelection(-sorted_Inflation_rates) gets negative weights
+    for positive fitness, so the roulette would be ill-defined anyway.
+  - Found by reading.
+
+[BUG] 28. 12 of 14 optimizers crash when lb/ub are numpy arrays.
+  - Bound handling is `if not isinstance(lb, list): lb = [lb]*dim`.
+    A numpy array is wrapped into a list of arrays -> broadcast ValueError.
+  - Only PSO, HHO, DE accept arrays. The direct-call API (optimizers.optimizer_map)
+    and api.py document "float or list", so arrays are a natural input.
+
+[QUAL] 29. Deviations from the published algorithms (not crashes).
+  - BAT.py: Q = Qmin + (Qmin - Qmax)*rand gives Q in [-2,0]; paper uses [0,2].
+    Loudness A and pulse rate r are constant (no update rule).
+  - MFO.py: `i <= Flame_no` / sorted_population[Flame_no] is off by one vs the
+    paper's 1-based Flame_no.
+  - FFA.py: positions are never clipped to bounds; returned best is the current
+    generation's best, not best-so-far (no elitism).
+  - DE.py: crossover has no j_rand, so a trial can equal its parent.
+
+[QUAL] 30. The "cuda" parallel backend does not use the GPU for optimizers.
+  - parallel_utils.run_optimizer_parallel(cuda): runs the NumPy optimizers in a
+    ThreadPoolExecutor and only calls torch.cuda.set_device(). No tensor work
+    happens, and the GIL serializes the threads. It is slower than 'multiprocessing'.
+  - On Linux with the 'fork' start method, process workers inherit the same
+    NumPy/random RNG state, so first runs per worker can be identical.
+    (Plausible; not tested on this Windows machine, which uses 'spawn'.)
+  - Results come back in as_completed() order, so "Run k" labels in details.csv
+    do not match submission order (cosmetic).
+
+Clean in this run: GWO, PSO, SCA, WOA (100/100 runs, all oracles passed).

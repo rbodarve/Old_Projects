@@ -33,18 +33,18 @@ own `README.md` with full detail and independent source citations — this page 
 
 | Folder | What it is | Original state | Current state |
 |--------|------------|----------------|---------------|
-| [CMSC_170/](CMSC_170/) | AI coursework (C++, Java, Prolog) | Loose source files by topic, no README, several no longer built or ran on modern tooling | Topic README with each area reviewed and repaired to build/run, each carrying its own `ABOUT.md` change log — see [CMSC_170/README.md](CMSC_170/README.md) |
+| [CMSC_170/](CMSC_170/) | AI coursework (C++, Java, Prolog) | Loose source files by topic, no README, several no longer built or ran on modern tooling | Topic README with each area reviewed and repaired to build/run, each carrying its own `ABOUT.md` change log — see [CMSC_170/README.md](CMSC_170/README.md); randomized simulation test runs recorded (see [Test Results](CMSC_170/README.md#test-results)) |
 | [Dama/](Dama/) | Two-player Dama board game (Java Swing) | MySQL-backed Java **applet** — needed a browser plugin and an external DB server | Self-contained desktop app: embedded **SQLite**, single runnable JAR, **Gradle** build; reviewed gameplay/UI bugs fixed across three passes, incl. strict flying-King capture blockers and a Resign confirmation (see [docs/issues.txt](Dama/docs/issues.txt)); latest release **dama-v1.4** |
-| [Deep-transfer-learning…GSA…/](Deep-transfer-learning-with-gravitational-search-algorithm-for-enhanced-plant-disease-classification-main/) | Plant-disease image classifier (MobileNetV2 + Gravitational Search Algorithm) | Notebook with a **fabricated** `accuracy × 2` metric and no real GSA | Rebuilt, working Colab notebook: genuine GSA hyperparameter search and honest test metrics; 98.2 % test accuracy on 38 PlantVillage classes (see its [Results](Deep-transfer-learning-with-gravitational-search-algorithm-for-enhanced-plant-disease-classification-main/README.md#results)) |
-| [EvoloPy-master/](EvoloPy-master/) | Nature-inspired optimization library (Python) | Older fork, drifted from upstream | Synced to upstream **v4.0.6**; static review logged known bugs (see [issues-evolopy.txt](EvoloPy-master/issues-evolopy.txt)) — not yet all fixed |
-| [UPMin_System/](UPMin_System/) | 2011 PHP intranet (personnel training, HR, research) | Legacy PHP 5 app using `mysql_*`, SQL-injectable, missing core files | Unchanged — kept as an **archived, non-runnable snapshot**; README documents its structure and defects |
+| [Deep-transfer-learning…GSA…/](Deep-transfer-learning-with-gravitational-search-algorithm-for-enhanced-plant-disease-classification-main/) | Plant-disease image classifier (MobileNetV2 + Gravitational Search Algorithm) | Notebook with a **fabricated** `accuracy × 2` metric and no real GSA | Rebuilt, working Colab notebook ([training_model.ipynb](Deep-transfer-learning-with-gravitational-search-algorithm-for-enhanced-plant-disease-classification-main/training_model.ipynb)): genuine GSA hyperparameter search and honest test metrics; 98.2 % test accuracy on 38 PlantVillage classes (see its [Results](Deep-transfer-learning-with-gravitational-search-algorithm-for-enhanced-plant-disease-classification-main/README.md#results) and [Caveats](Deep-transfer-learning-with-gravitational-search-algorithm-for-enhanced-plant-disease-classification-main/README.md#caveats)) |
+| [EvoloPy-master/](EvoloPy-master/) | Nature-inspired optimization library (Python) | Older fork, drifted from upstream | Synced to upstream **v4.0.6**; static review logged known bugs (see [issues-evolopy.txt](EvoloPy-master/issues-evolopy.txt)), confirmed and extended by a simulation test run (see [Simulation test run](EvoloPy-master/issues-evolopy.txt#L160)) — not yet all fixed |
+| [UPMin_System/](UPMin_System/) | 2011 PHP intranet (personnel training, HR, research) | Legacy PHP 5 app using `mysql_*`, SQL-injectable, missing core files | Code unchanged — kept as an **archived, non-runnable snapshot**; README documents its structure and defects (see [Known Issues](UPMin_System/README.md#known-issues)); static architecture/logic review logged (see [issues-upmin.txt](UPMin_System/issues-upmin.txt)) |
 
 ## State Summary
 
 - **Modernized & working** — Dama, the GSA plant-disease notebook.
-- **Reviewed & documented** — CMSC_170 (per-topic bug fixes, each with an `ABOUT.md` change log).
-- **Reviewed, fixes pending** — EvoloPy-master (issues logged, not all resolved).
-- **Archived reference only** — UPMin_System (obsolete platform; not revived).
+- **Reviewed & documented** — CMSC_170 (per-topic bug fixes, each with an `ABOUT.md` change log; [simulation test results](CMSC_170/README.md#test-results)).
+- **Reviewed, fixes pending** — EvoloPy-master ([issues logged](EvoloPy-master/issues-evolopy.txt), not all resolved).
+- **Archived reference only** — UPMin_System (obsolete platform; not revived; [issues logged](UPMin_System/issues-upmin.txt)).
 
 ## Layout
 

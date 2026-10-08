@@ -7,3 +7,6 @@ build/
 
 # Local SQLite database (created at runtime under ~/.dama)
 *.db
+
+# VS Code Java extension output
+bin/
