@@ -78,7 +78,7 @@ small **SQLite** file that the app creates automatically on first launch.
 > you download a file and run it with Java. If you don't have Java 17 or newer, install it
 > first from [Adoptium](https://adoptium.net/).
 
-1. Download `dama.jar` from the [Releases](../../releases) page.
+1. Download `dama.jar` from the [Releases](https://github.com/rbodarve/Old_Projects/releases) page.
 2. Run it:
    ```sh
    java -jar dama.jar
