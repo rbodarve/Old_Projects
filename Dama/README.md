@@ -181,6 +181,10 @@ runnable and distributable today:
 - **Code hardening:** the Swing UI is built on the Event Dispatch Thread; promotion no longer
   relies on shared mutable `static` flags (`makeMove` reports a crowning via its return value);
   and database `ResultSet`s are scoped to each query instead of a shared field.
+- **Comment cleanup:** the WSL-specific comment on the in-window prompt overlays was reworded
+  after WSL was retired; the overlays are kept because they work the same on Windows.
+- **Scoreboard text:** a long player name is now shortened with "…" so the scoreboard line fits
+  its label while the points and moves stay whole, and a count of one reads "1 move".
 
 ## License
 

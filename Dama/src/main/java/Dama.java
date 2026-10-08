@@ -50,8 +50,8 @@ public final class Dama extends JPanel{
 	private JMenuBar gameMenuBar;
 	private JMenu gameMenu, highScoreMenu, statisticsMenu;
 	private JMenuItem newGameItem, quitItem, byMovesMenu, byPointsMenu, playerProfileMenu;
-        // The prompts render inside the main window (see overlay*) instead of as separate
-        // top-level windows, because the WSLg/Wayland compositor won't reliably place/size dialogs.
+        // Prompts render as in-window overlays (see overlay*). This was originally a workaround
+        // for WSLg dialog placement; it is kept because it works the same on Windows.
         public JPanel f = new JPanel(new BorderLayout());
 	public JPanel highFrame = new JPanel();
 	public JButton back = new JButton("Back");
@@ -143,6 +143,8 @@ public final class Dama extends JPanel{
 		add(p2Score);
 		p1Score.setBounds(0, 305, 225, 25);
 		p2Score.setBounds(225, 305, 225, 25);
+		p1Score.setBorder(BorderFactory.createEmptyBorder(0, 6, 0, 6));   // keep a gap between the two scoreboard lines
+		p2Score.setBorder(BorderFactory.createEmptyBorder(0, 6, 0, 6));
 		p1Score.setForeground(new Color(255,180,180));   // RED = Player 1 (lightened for contrast on dark red)
 		p2Score.setForeground(Color.WHITE);              // BLACK = Player 2
 		buildOverlay();
@@ -341,8 +343,22 @@ public final class Dama extends JPanel{
 			p2Score.setText(" ");
 			return;
 		}
-		p1Score.setText(player1 + ":  " + P1points + " pts / " + P1moves + " moves");
-		p2Score.setText(player2 + ":  " + P2points + " pts / " + P2moves + " moves");
+		p1Score.setText(scoreLine(p1Score, player1, P1points, P1moves));
+		p2Score.setText(scoreLine(p2Score, player2, P2points, P2moves));
+	}
+
+	// "Name:  N pts / M moves" for a scoreboard label.  Names have no length limit, so if the
+	// line is wider than the label, only the name is shortened (ending in "…"); the score stays whole.
+	private String scoreLine(JLabel label, String name, int points, int moves){
+		String tail = ":  " + points + " pts / " + moves + (moves == 1 ? " move" : " moves");
+		FontMetrics fm = label.getFontMetrics(label.getFont());
+		Insets in = label.getInsets();
+		int room = label.getWidth() - in.left - in.right;
+		if(fm.stringWidth(name + tail) <= room)
+			return name + tail;
+		while(name.length() > 0 && fm.stringWidth(name + "…" + tail) > room)
+			name = name.substring(0, name.length() - 1);
+		return name + "…" + tail;
 	}
 
 	private static class DamaMove{
