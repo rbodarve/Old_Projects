@@ -20,6 +20,7 @@
 - [Projects](#projects)
 - [State Summary](#state-summary)
 - [Layout](#layout)
+- [Proposed simplifications (2026-10-11)](#proposed-simplifications-2026-10-11)
 - [Acknowledgements & Sources](#acknowledgements--sources)
 
 ## About
@@ -56,6 +57,23 @@ Old_Projects/
 ├── EvoloPy-master/      # Python optimization library (upstream fork)
 └── UPMin_System/        # legacy 2011 PHP intranet (archived)
 ```
+
+## Proposed simplifications (2026-10-11)
+
+- **What** — delete `EvoloPy-master/EvoloPy-master/examples/quickstart.ipynb`. It duplicates
+  `evolopy_notebook_example.ipynb` in the same folder.
+- **Why** — both files are 1-byte placeholders (a single space). They are not valid notebooks,
+  and Jupyter cannot open them. Nothing in the repo references them.
+- **Evidence**
+  - `md5sum`: both files hash to `7215ee9c7d9dc229d2921a40e899ec5f`.
+  - `wc -c`: both files are `1` byte; `od -c` shows the single byte is a space.
+  - `git grep -nI -e quickstart -e evolopy_notebook_example` from the repo root: no hits.
+  - Temp copy of `EvoloPy-master/`: after deleting `quickstart.ipynb`, `examples/` keeps
+    `evolopy_notebook_example.ipynb`, `example.ipynb` and the `.py` examples, and
+    `grep -rnI` for both names finds no hits. The delete breaks no link or import.
+- **Note** — `evolopy_notebook_example.ipynb` is also empty. Keep it, or restore real content
+  from upstream EvoloPy. This suggestion does not delete it.
+- **Status** — suggestion only. Not applied, because this is graded coursework.
 
 ## Acknowledgements & Sources
 
