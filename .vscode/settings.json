@@ -1,6 +1,0 @@
-{
-    "python-envs.defaultPackageManager": "ms-python.python:conda",
-    "java.configuration.updateBuildConfiguration": "interactive",
-    "python.defaultInterpreterPath": "C:\\Users\\rboda\\miniforge3\\envs\\ml\\python.exe",
-    "python-envs.defaultEnvManager": "ms-python.python:conda"
-}
