@@ -31,6 +31,10 @@ Coursework archive for **CMSC 170 (Introduction to Artificial Intelligence)**, U
 a collection of class exercises and machine problems, organized by topic. These are standalone
 source files: there is no build system, so each is compiled or run individually.
 
+Originally the folder had no README, and several programs no longer built or ran on modern
+tooling. Each topic area was reviewed and repaired to build and run; each topic folder carries
+its own `ABOUT.md` change log.
+
 ## Folder Overview
 
 | Folder | Language | Topic |

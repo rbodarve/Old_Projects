@@ -30,7 +30,7 @@
 - [Project Structure](#project-structure)
 - [Modernization & Fixes](#modernization--fixes)
 - [License](#license)
-- [Acknowledgements](#acknowledgements)
+- [Acknowledgements](#acknowledgements--sources)
 
 ## About
 
@@ -147,6 +147,7 @@ Dama/
 ├─ src/main/java/Dama.java       # game, Swing UI, and SQLite data access (single class)
 ├─ docs/
 │  ├─ example-games.txt          # five worked sample games + two promotion examples
+│  ├─ issues.txt                 # known issues and fixes from three review passes
 │  └─ point-system.txt           # original design notes for the scoring
 ├─ legacy/CheckersErik.java      # earlier, superseded version — kept for reference, not built
 ├─ build.gradle                  # build config (produces the self-contained JAR)
@@ -155,6 +156,9 @@ Dama/
 ```
 
 ## Modernization & Fixes
+
+Gameplay and UI bugs were reviewed and fixed across three passes; the findings and fixes are
+logged in [`docs/issues.txt`](docs/issues.txt). The latest release is **dama-v1.4**.
 
 This version keeps the original game and data-access logic intact while making the project
 runnable and distributable today:

@@ -8,7 +8,7 @@
 ![Status](https://img.shields.io/badge/status-archived%20%26%20revisited-lightgrey)
 ![README style](https://img.shields.io/badge/README-Amazing%20GitHub%20Template-brightgreen)
 
-[Projects](#projects) &nbsp;·&nbsp; [State Summary](#state-summary) &nbsp;·&nbsp; [Layout](#layout) &nbsp;·&nbsp; [Sources](#acknowledgements--sources)
+[Projects](#projects) &nbsp;·&nbsp; [Layout](#layout) &nbsp;·&nbsp; [Sources](#acknowledgements--sources)
 
 </div>
 
@@ -18,34 +18,25 @@
 
 - [About](#about)
 - [Projects](#projects)
-- [State Summary](#state-summary)
 - [Layout](#layout)
-- [Proposed simplifications (2026-10-11)](#proposed-simplifications-2026-10-11)
 - [Acknowledgements & Sources](#acknowledgements--sources)
 
 ## About
 
 Most of these were written years ago against tooling that has since aged out (PHP 5, Java
 applets, deprecated APIs); each was revisited to modernize, review, or simply document it.
-Every folder below notes **its original state** and **where it stands now**, and carries its
-own `README.md` with full detail and independent source citations — this page is the map.
+Each folder carries its own `README.md` with its original state, where it stands now, and
+independent source citations — this page is the map.
 
 ## Projects
 
-| Folder | What it is | Original state | Current state |
-|--------|------------|----------------|---------------|
-| [CMSC_170/](CMSC_170/) | AI coursework (C++, Java, Prolog) | Loose source files by topic, no README, several no longer built or ran on modern tooling | Topic README with each area reviewed and repaired to build/run, each carrying its own `ABOUT.md` change log — see [CMSC_170/README.md](CMSC_170/README.md); randomized simulation test runs recorded (see [Test Results](CMSC_170/README.md#test-results)) |
-| [Dama/](Dama/) | Two-player Dama board game (Java Swing) | MySQL-backed Java **applet** — needed a browser plugin and an external DB server | Self-contained desktop app: embedded **SQLite**, single runnable JAR, **Gradle** build; reviewed gameplay/UI bugs fixed across three passes, incl. strict flying-King capture blockers and a Resign confirmation (see [docs/issues.txt](Dama/docs/issues.txt)); latest release **dama-v1.4** |
-| [Deep-transfer-learning…GSA…/](Deep-transfer-learning-with-gravitational-search-algorithm-for-enhanced-plant-disease-classification-main/) | Plant-disease image classifier (MobileNetV2 + Gravitational Search Algorithm) | Notebook with a **fabricated** `accuracy × 2` metric and no real GSA | Rebuilt, working Colab notebook ([training_model.ipynb](Deep-transfer-learning-with-gravitational-search-algorithm-for-enhanced-plant-disease-classification-main/training_model.ipynb)): genuine GSA hyperparameter search and honest test metrics; 98.2 % test accuracy on 38 PlantVillage classes (see its [Results](Deep-transfer-learning-with-gravitational-search-algorithm-for-enhanced-plant-disease-classification-main/README.md#results) and [Caveats](Deep-transfer-learning-with-gravitational-search-algorithm-for-enhanced-plant-disease-classification-main/README.md#caveats)) |
-| [EvoloPy-master/](EvoloPy-master/) | Nature-inspired optimization library (Python) | Older fork, drifted from upstream | Synced to upstream **v4.0.6**; static review logged known bugs (see [issues-evolopy.txt](EvoloPy-master/issues-evolopy.txt)), confirmed and extended by a simulation test run (see [Simulation test run](EvoloPy-master/issues-evolopy.txt#L160)) — not yet all fixed |
-| [UPMin_System/](UPMin_System/) | 2011 PHP intranet (personnel training, HR, research) | Legacy PHP 5 app using `mysql_*`, SQL-injectable, missing core files | Code unchanged — kept as an **archived, non-runnable snapshot**; README documents its structure and defects (see [Known Issues](UPMin_System/README.md#known-issues)); static architecture/logic review logged (see [issues-upmin.txt](UPMin_System/issues-upmin.txt)) |
-
-## State Summary
-
-- **Modernized & working** — Dama, the GSA plant-disease notebook.
-- **Reviewed & documented** — CMSC_170 (per-topic bug fixes, each with an `ABOUT.md` change log; [simulation test results](CMSC_170/README.md#test-results)).
-- **Reviewed, fixes pending** — EvoloPy-master ([issues logged](EvoloPy-master/issues-evolopy.txt), not all resolved).
-- **Archived reference only** — UPMin_System (obsolete platform; not revived; [issues logged](UPMin_System/issues-upmin.txt)).
+| Folder | What it is | Status | README |
+|--------|------------|--------|--------|
+| [CMSC_170/](CMSC_170/) | AI coursework (C++, Java, Prolog) | Reviewed | [README](CMSC_170/README.md) |
+| [Dama/](Dama/) | Two-player Dama board game (Java Swing) | Working | [README](Dama/README.md) |
+| [Deep-transfer-learning…GSA…/](Deep-transfer-learning-with-gravitational-search-algorithm-for-enhanced-plant-disease-classification-main/) | Plant-disease image classifier (MobileNetV2 + GSA) | Working | [README](Deep-transfer-learning-with-gravitational-search-algorithm-for-enhanced-plant-disease-classification-main/README.md) |
+| [EvoloPy-master/](EvoloPy-master/) | Nature-inspired optimization library (Python fork) | Fixes pending | [README](EvoloPy-master/README.md) |
+| [UPMin_System/](UPMin_System/) | 2011 PHP intranet (personnel training, HR, research) | Archived | [README](UPMin_System/README.md) · [issues log](UPMin_System/issues-upmin.txt) |
 
 ## Layout
 
@@ -57,23 +48,6 @@ Old_Projects/
 ├── EvoloPy-master/      # Python optimization library (upstream fork)
 └── UPMin_System/        # legacy 2011 PHP intranet (archived)
 ```
-
-## Proposed simplifications (2026-10-11)
-
-- **What** — delete `EvoloPy-master/EvoloPy-master/examples/quickstart.ipynb`. It duplicates
-  `evolopy_notebook_example.ipynb` in the same folder.
-- **Why** — both files are 1-byte placeholders (a single space). They are not valid notebooks,
-  and Jupyter cannot open them. Nothing in the repo references them.
-- **Evidence**
-  - `md5sum`: both files hash to `7215ee9c7d9dc229d2921a40e899ec5f`.
-  - `wc -c`: both files are `1` byte; `od -c` shows the single byte is a space.
-  - `git grep -nI -e quickstart -e evolopy_notebook_example` from the repo root: no hits.
-  - Temp copy of `EvoloPy-master/`: after deleting `quickstart.ipynb`, `examples/` keeps
-    `evolopy_notebook_example.ipynb`, `example.ipynb` and the `.py` examples, and
-    `grep -rnI` for both names finds no hits. The delete breaks no link or import.
-- **Note** — `evolopy_notebook_example.ipynb` is also empty. Keep it, or restore real content
-  from upstream EvoloPy. This suggestion does not delete it.
-- **Status** — suggestion only. Not applied, because this is graded coursework.
 
 ## Acknowledgements & Sources
 
