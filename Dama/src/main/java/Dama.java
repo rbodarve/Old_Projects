@@ -72,14 +72,10 @@ public final class Dama extends JPanel{
 	public int P1moves = 0;
 	public int P2points = 0;
 	public int P2moves = 0;
-	public LinkedList<String> scores = new LinkedList<String>();
 	public JPanel pointScoreFrame = new JPanel(new BorderLayout());
 	public JButton pointScoreBack = new JButton("Back");
 	public JPanel moveScoreFrame = new JPanel(new BorderLayout());
 	public JButton moveScoreBack = new JButton("Back");
-	public LinkedList<String> playerData = new LinkedList<String>();
-	public int gamesPlayed, totalPoints, gamesWin, gamesLose, gamesDraw, highestPoint, fewestMoves, gamesPlayed2, totalPoints2, gamesWin2, gamesLose2, gamesDraw2, highestPoint2, fewestMoves2;
-	public String opponentPoint, opponentMoves, opponentPoint2, opponentMoves2;
 	public JButton chooseP1 = new JButton("Player 1");
 	public JButton chooseP2 = new JButton("Player 2");
 	public JPanel playerListFrame = new JPanel();
@@ -261,14 +257,22 @@ public final class Dama extends JPanel{
 			newPlayerStatus.setText("Player name cannot be empty.");
 			return;
 		}
+		// Swing labels render text that starts with <html> as HTML, so names are kept plain.
+		if(name.contains("<")){
+			newPlayerStatus.setText("Player name cannot contain '<'.");
+			return;
+		}
 		String sql = "insert into playerstats values (?,0,0,0,0,0,0,'n/a',0,'n/a')";
 		try(PreparedStatement ps = con.prepareStatement(sql)){
 			ps.setString(1, name);
 			ps.executeUpdate();
 		}
 		catch(java.sql.SQLException ex){
-			// A duplicate name violates the PRIMARY KEY; report it inline.
-			newPlayerStatus.setText("\"" + name + "\" already exists or could not be added.");
+			// SQLITE_CONSTRAINT (19): a duplicate name violates the PRIMARY KEY.
+			if(ex.getErrorCode() == 19)
+				newPlayerStatus.setText("\"" + name + "\" already exists.");
+			else
+				newPlayerStatus.setText(ex.getMessage());
 			return;
 		}
 		playerName();
@@ -456,10 +460,12 @@ public final class Dama extends JPanel{
 			else if(src == quitItem)
 				System.exit(0);
 			else if(src == byPointsMenu){
-				byPointsScores();
+				showTop3("select name, highestpoint, opponentpoint from playerstats where highestpoint > 0 order by highestpoint DESC limit 3",
+					new String[]{ "Name","Highest Point", "Opponent (Pts)"}, pointScoreFrame, pointScoreBack, "Top 3 by Points");
 			}
                         else if(src == byMovesMenu){
-				byMovesScores();
+				showTop3("select name, fewestmoves, opponentmoves from playerstats where fewestmoves > 0 order by fewestmoves ASC limit 3",
+					new String[]{ "Name","Fewest Moves", "Opponent (Moves)"}, moveScoreFrame, moveScoreBack, "Top 3 by Moves");
 			}
 			else if(src == playerProfileMenu)
 				showProfilePicker();
@@ -481,12 +487,7 @@ public final class Dama extends JPanel{
 			else if(src == playerProfOk){
 				playerProfile();
 			}
-			else if(src == pointScoreBack){
-				scores.clear();
-				hideOverlay();
-			}
-			else if(src == moveScoreBack){
-				scores.clear();
+			else if(src == pointScoreBack || src == moveScoreBack){
 				hideOverlay();
 			}
 			else if(src == chooseP1){
@@ -514,8 +515,6 @@ public final class Dama extends JPanel{
                                         return;
                                     }
                                     player2 = select;
-                                    if(!playerQuery())   // don't start a game on stale stats
-                                        return;
                                     player1Flag=true;
                                     hideOverlay();
                                     resignButton.setEnabled(true);
@@ -572,16 +571,17 @@ public final class Dama extends JPanel{
 		}
 
 		void finishResign(){
-			if(currentPlayer == DamaData.RED){
+			boolean p1Resigns = (currentPlayer == DamaData.RED);
+			if(p1Resigns){
 				P2points+=10;
 				gameOver(player1 + " resigns.  " + player2 + " wins.");
-				player2win();
 			}
 			else{
 				P1points+=10;
 				gameOver(player2 + " resigns.  " + player1 + " wins.");
-				player1win();
 			}
+			saveResult(player1, player2, P1points, P1moves, p1Resigns ? -1 : 1);
+			saveResult(player2, player1, P2points, P2moves, p1Resigns ? 1 : -1);
 			// Tallies are left on the scoreboard and reset by the next doNewGame().
 		}
 
@@ -618,7 +618,8 @@ public final class Dama extends JPanel{
 
 		void finishDraw(){
 			gameOver(player1 + " and " + player2 + " agree to a draw.");
-			gameDraw();
+			saveResult(player1, player2, P1points, P1moves, 0);
+			saveResult(player2, player1, P2points, P2moves, 0);
 			// Tallies are left on the scoreboard and reset by the next doNewGame().
 		}
 
@@ -679,40 +680,24 @@ public final class Dama extends JPanel{
 			// The capture chain is over (or this was a quiet move): remove the jumped pieces that
 			// were held on the board as blockers, so the opponent's turn sees a clean position.
 			board.clearCaptured();
-			if(currentPlayer == DamaData.RED){
-				// RED (player1) just completed a turn: +1 for the move, +5 if promoted this turn, and count the move.
-				P1points++;
-				if(justPromoted)
-					P1points+=5;
-				P1moves++;
-				currentPlayer = DamaData.BLACK;
-				legalMoves = board.getLegalMoves(currentPlayer);
-				if(legalMoves == null){
-					gameOver(player2 + " has no moves.  " + player1 + " wins.");
-					player1win();
-				}
-				else if(legalMoves[0].isJump())
-					message.setText(player2 + ":  Make your move.  You must jump.");
-				else
-					message.setText(player2 + ":  Make your move.");
+			// The mover just completed a turn: +1 for the move, +5 if promoted this turn, and count the move.
+			boolean p1Moved = (currentPlayer == DamaData.RED);
+			String mover = p1Moved ? player1 : player2;
+			String next  = p1Moved ? player2 : player1;
+			int turnPoints = justPromoted ? 6 : 1;
+			if(p1Moved){ P1points += turnPoints; P1moves++; }
+			else       { P2points += turnPoints; P2moves++; }
+			currentPlayer = p1Moved ? DamaData.BLACK : DamaData.RED;
+			legalMoves = board.getLegalMoves(currentPlayer);
+			if(legalMoves == null){
+				gameOver(next + " has no moves.  " + mover + " wins.");
+				saveResult(player1, player2, P1points, P1moves, p1Moved ? 1 : -1);
+				saveResult(player2, player1, P2points, P2moves, p1Moved ? -1 : 1);
 			}
-			else{
-				// BLACK (player2) just completed a turn: +1 for the move, +5 if promoted this turn, and count the move.
-				P2points++;
-				if(justPromoted)
-					P2points+=5;
-				P2moves++;
-				currentPlayer = DamaData.RED;
-				legalMoves = board.getLegalMoves(currentPlayer);
-				if(legalMoves == null){
-					gameOver(player1 + " has no moves.  " + player2 +" wins.");
-					player2win();
-				}
-				else if(legalMoves[0].isJump())
-					message.setText(player1 + ":  Make your move.  You must jump.");
-				else
-					message.setText(player1 + ":  Make your move.");
-			}
+			else if(legalMoves[0].isJump())
+				message.setText(next + ":  Make your move.  You must jump.");
+			else
+				message.setText(next + ":  Make your move.");
 			selectedRow = -1;
                 if(legalMoves != null){
 				boolean sameStartSquare = true;
@@ -1181,315 +1166,46 @@ public final class Dama extends JPanel{
 		overlayCloseButton.setEnabled(false);
 	}
 	
-	public void byPointsScores(){
-		int i = 0;
-		String descQuery = "select name, highestpoint, opponentpoint from playerstats where highestpoint > 0 order by highestpoint DESC";
-		try{
-			ResultSet rs = stmt.executeQuery(descQuery);
-			while(rs.next()&&i<3){
-				String temp = rs.getString("name");
-				scores.add(temp);
-				temp = rs.getString("highestpoint");
-				scores.add(temp);
-				temp = rs.getString("opponentpoint");
-				scores.add(temp);
-				i++;
-			}
-			rs.close();
+	// One leaderboard: the query selects name, the record and its opponent column, top 3 only.
+	public void showTop3(String query, String[] columns, JPanel frame, JButton back, String title){
+		Vector<String[]> rows = new Vector<String[]>();
+		try(ResultSet rs = stmt.executeQuery(query)){
+			while(rs.next())
+				rows.add(new String[]{ rs.getString(1), rs.getString(2), rs.getString(3) });
 		}
 		catch(java.sql.SQLException ex){
 			overlayMessage("Error", "Could not load high scores: " + ex.getMessage());
 			return;
 		}
-		String rows[][] = new String[scores.size()/3][3];
-		int comp = scores.size()/3;
-		for(int k = 0; k < comp; k++){
-			for(int count = 0; count<3; count++){
-				rows[k][count] = String.valueOf(scores.pop());
-			}
-		}
-		String columns[] = { "Name","Highest Point", "Opponent (Pts)"};
-		JTable table2 = new JTable(rows,columns);
-		table2.revalidate();
-		table2.setAutoCreateRowSorter(true);
-		table2.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
-		JScrollPane scrollPane = new JScrollPane(table2);
-		pointScoreFrame.removeAll();
-		pointScoreFrame.setLayout(new BorderLayout());
-		pointScoreFrame.add(scrollPane, BorderLayout.CENTER);
-		pointScoreFrame.add(pointScoreBack,BorderLayout.SOUTH);
-		showOverlay(pointScoreFrame, "Top 3 by Points");
-	}
-	
-	public void byMovesScores(){
-		int i = 0;
-		String descQuery = "select name, fewestmoves, opponentmoves from playerstats where fewestmoves > 0 order by fewestmoves ASC";
-		try{
-			ResultSet rs = stmt.executeQuery(descQuery);
-			while(rs.next()&&i<3){
-				String temp = rs.getString("name");
-				scores.add(temp);
-				temp = rs.getString("fewestmoves");
-				scores.add(temp);
-				temp = rs.getString("opponentmoves");
-				scores.add(temp);
-				i++;
-			}
-			rs.close();
-		}
-		catch(java.sql.SQLException ex){
-			overlayMessage("Error", "Could not load high scores: " + ex.getMessage());
-			return;
-		}
-		String rows[][] = new String[scores.size()/3][3];
-		int comp = scores.size()/3;
-		for(int k = 0; k < comp; k++){
-			for(int count = 0; count<3; count++){
-				rows[k][count] = String.valueOf(scores.pop());
-			}
-		}
-		String columns[] = { "Name","Fewest Moves", "Opponent (Moves)"};
-		JTable table = new JTable(rows,columns);
+		JTable table = new JTable(rows.toArray(new String[0][]), columns);
 		table.setAutoCreateRowSorter(true);
 		table.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
-		JScrollPane scrollPane = new JScrollPane(table);
-		moveScoreFrame.removeAll();
-		moveScoreFrame.setLayout(new BorderLayout());
-		moveScoreFrame.add(scrollPane, BorderLayout.CENTER);
-		moveScoreFrame.add(moveScoreBack,BorderLayout.SOUTH);
-		showOverlay(moveScoreFrame, "Top 3 by Moves");
-	}
-	
-	public boolean playerQuery(){
-		String newQuery = "select * from playerstats where name = ?";
-		String temp2 = new String();
-		try(PreparedStatement ps = con.prepareStatement(newQuery)){
-			ps.setString(1, player1);
-			ResultSet rs = ps.executeQuery();
-			while(rs.next()){
-				String temp = rs.getString("name");
-				playerData.add(temp);
-				temp = rs.getString("gamesplayed");
-				playerData.add(temp);
-				temp = rs.getString("totalpoints");
-				playerData.add(temp);
-				temp = rs.getString("gameswin");
-				playerData.add(temp);
-				temp = rs.getString("gameslose");
-				playerData.add(temp);
-				temp = rs.getString("gamesdraw");
-				playerData.add(temp);
-				temp = rs.getString("highestpoint");
-				playerData.add(temp);
-				temp = rs.getString("opponentpoint");
-				playerData.add(temp);
-				temp = rs.getString("fewestmoves");
-				playerData.add(temp);
-				temp = rs.getString("opponentmoves");
-				playerData.add(temp);
-			}
-			rs.close();
-			ps.setString(1, player2);
-			rs = ps.executeQuery();
-			while(rs.next()){
-				String temp = rs.getString("name");
-				playerData.add(temp);
-				temp = rs.getString("gamesplayed");
-				playerData.add(temp);
-				temp = rs.getString("totalpoints");
-				playerData.add(temp);
-				temp = rs.getString("gameswin");
-				playerData.add(temp);
-				temp = rs.getString("gameslose");
-				playerData.add(temp);
-				temp = rs.getString("gamesdraw");
-				playerData.add(temp);
-				temp = rs.getString("highestpoint");
-				playerData.add(temp);
-				temp = rs.getString("opponentpoint");
-				playerData.add(temp);
-				temp = rs.getString("fewestmoves");
-				playerData.add(temp);
-				temp = rs.getString("opponentmoves");
-				playerData.add(temp);
-			}
-			rs.close();
-		}
-		catch(java.sql.SQLException ex){
-			// A failed load leaves the stat fields stale, so refuse to start the game
-			// rather than later writing corrupted totals back to the database.
-			overlayMessage("Error", "Could not load player stats: " + ex.getMessage());
-			return false;
-		}
-		for(int ctr = 0; ctr<playerData.size(); ctr++){
-			switch(ctr){
-				case 1:	temp2 = String.valueOf(playerData.get(ctr));
-						gamesPlayed = Integer.parseInt(temp2);
-						break;
-				case 2:	temp2 = String.valueOf(playerData.get(ctr));
-						totalPoints = Integer.parseInt(temp2);
-						break;
-				case 3:	temp2 = String.valueOf(playerData.get(ctr));
-						gamesWin = Integer.parseInt(temp2);
-						break;
-				case 4:	temp2 = String.valueOf(playerData.get(ctr));
-						gamesLose = Integer.parseInt(temp2);
-						break;
-				case 5:	temp2 = String.valueOf(playerData.get(ctr));
-						gamesDraw = Integer.parseInt(temp2);
-						break;
-				case 6:	temp2 = String.valueOf(playerData.get(ctr));
-						highestPoint = Integer.parseInt(temp2);
-						break;
-				case 7: opponentPoint = String.valueOf(playerData.get(ctr));
-						break;
-				case 8:	temp2 = String.valueOf(playerData.get(ctr));
-						fewestMoves = Integer.parseInt(temp2);
-						break;
-				case 9: opponentMoves = String.valueOf(playerData.get(ctr));
-						break;
-				case 11:temp2 = String.valueOf(playerData.get(ctr));
-						gamesPlayed2 = Integer.parseInt(temp2);
-						break;
-				case 12:temp2 = String.valueOf(playerData.get(ctr));
-						totalPoints2 = Integer.parseInt(temp2);
-						break;
-				case 13:temp2 = String.valueOf(playerData.get(ctr));
-						gamesWin2 = Integer.parseInt(temp2);
-						break;
-				case 14:temp2 = String.valueOf(playerData.get(ctr));
-						gamesLose2 = Integer.parseInt(temp2);
-						break;
-				case 15:temp2 = String.valueOf(playerData.get(ctr));
-						gamesDraw2 = Integer.parseInt(temp2);
-						break;
-				case 16:temp2 = String.valueOf(playerData.get(ctr));
-						highestPoint2 = Integer.parseInt(temp2);
-						break;
-				case 17:opponentPoint2 = String.valueOf(playerData.get(17));
-						break;
-				case 18:temp2 = String.valueOf(playerData.get(ctr));
-						fewestMoves2 = Integer.parseInt(temp2);
-						break;
-				case 19:opponentMoves2 = String.valueOf(playerData.get(19));
-						break;
-			}
-		}
-		return true;
+		frame.removeAll();
+		frame.setLayout(new BorderLayout());
+		frame.add(new JScrollPane(table), BorderLayout.CENTER);
+		frame.add(back, BorderLayout.SOUTH);
+		showOverlay(frame, title);
 	}
 
-	public void player1win(){
-		gamesPlayed++;
-		gamesPlayed2++;
-		totalPoints = totalPoints + P1points;
-		totalPoints2 = totalPoints2 + P2points;
-		gamesWin++;
-		gamesLose2++;
-		if(P1points>highestPoint){
-			highestPoint = P1points;
-			opponentPoint = String.valueOf(playerData.get(10));
-		}
-		if(P2points>highestPoint2){
-			highestPoint2 = P2points;
-			opponentPoint2 = String.valueOf(playerData.get(0));
-		}
-		// "Fewest moves to win": only the winner (player1) records it, and 0 means "no record yet".
-		// Require P1moves>0 so a 0-move win (opponent resigned before the winner moved) never writes
-		// the 0 sentinel as a real record -- which would then be hidden by the fewestmoves>0 filter.
-		if(P1moves>0 && (fewestMoves==0 || P1moves<fewestMoves)){
-			fewestMoves = P1moves;
-			opponentMoves = String.valueOf(playerData.get(10));
-		}
-		String winnerSql = "UPDATE playerstats SET gamesplayed=?, totalpoints=?, gameswin=?, highestpoint=?, opponentpoint=?, fewestmoves=?, opponentmoves=? WHERE name=?";
-		String loserSql  = "UPDATE playerstats SET gamesplayed=?, totalpoints=?, gameslose=?, highestpoint=?, opponentpoint=?, fewestmoves=?, opponentmoves=? WHERE name=?";
-		try(PreparedStatement w = con.prepareStatement(winnerSql);
-		    PreparedStatement l = con.prepareStatement(loserSql)){
-			w.setInt(1, gamesPlayed); w.setInt(2, totalPoints); w.setInt(3, gamesWin);
-			w.setInt(4, highestPoint); w.setString(5, opponentPoint); w.setInt(6, fewestMoves);
-			w.setString(7, opponentMoves); w.setString(8, player1);
-			w.executeUpdate();
-			l.setInt(1, gamesPlayed2); l.setInt(2, totalPoints2); l.setInt(3, gamesLose2);
-			l.setInt(4, highestPoint2); l.setString(5, opponentPoint2); l.setInt(6, fewestMoves2);
-			l.setString(7, opponentMoves2); l.setString(8, player2);
-			l.executeUpdate();
+	// Add one finished game to one player's row.  result: 1 win, 0 draw, -1 loss.
+	// SQLite evaluates every right-hand side on the old row, so the record checks see the old values.
+	// "Fewest moves to win": only a winner with moves > 0 sets it, so 0 always means "no record yet"
+	// (a 0-move win, after the opponent resigned at once, never writes the sentinel as a record).
+	public void saveResult(String name, String opponent, int points, int moves, int result){
+		String sql = "update playerstats set gamesplayed = gamesplayed + 1, totalpoints = totalpoints + ?1,"
+			+ " gameswin = gameswin + (?2 = 1), gameslose = gameslose + (?2 = -1), gamesdraw = gamesdraw + (?2 = 0),"
+			+ " opponentpoint = case when ?1 > highestpoint then ?4 else opponentpoint end,"
+			+ " highestpoint = max(highestpoint, ?1),"
+			+ " opponentmoves = case when ?2 = 1 and ?3 > 0 and (fewestmoves = 0 or ?3 < fewestmoves) then ?4 else opponentmoves end,"
+			+ " fewestmoves = case when ?2 = 1 and ?3 > 0 and (fewestmoves = 0 or ?3 < fewestmoves) then ?3 else fewestmoves end"
+			+ " where name = ?5";
+		try(PreparedStatement ps = con.prepareStatement(sql)){
+			ps.setInt(1, points); ps.setInt(2, result); ps.setInt(3, moves);
+			ps.setString(4, opponent); ps.setString(5, name);
+			ps.executeUpdate();
 		}catch(java.sql.SQLException ex){
 			overlayMessage("Error", "Could not save game result: " + ex.getMessage());
 		}
-                purge();
-	}
-	
-	public void player2win(){
-		gamesPlayed2++;
-		gamesPlayed++;
-		totalPoints2 = totalPoints2 + P2points;
-		totalPoints = totalPoints + P1points;
-		gamesWin2++;
-		gamesLose++;
-		if(P2points>highestPoint2){
-			highestPoint2 = P2points;
-			opponentPoint2 = String.valueOf(playerData.get(0));
-		}
-		// "Fewest moves to win": only the winner (player2) records it, and 0 means "no record yet".
-		// Require P2moves>0 so a 0-move win (opponent resigned before the winner moved) never writes
-		// the 0 sentinel as a real record -- which would then be hidden by the fewestmoves>0 filter.
-		if(P2moves>0 && (fewestMoves2==0 || P2moves<fewestMoves2)){
-			fewestMoves2 = P2moves;
-			opponentMoves2 = String.valueOf(playerData.get(0));
-		}
-		if(P1points>highestPoint){
-			highestPoint = P1points;
-			opponentPoint = String.valueOf(playerData.get(10));
-		}
-		// player1 lost this game, so it sets no "fewest moves to win" record for them.
-		String winnerSql = "UPDATE playerstats SET gamesplayed=?, totalpoints=?, gameswin=?, highestpoint=?, opponentpoint=?, fewestmoves=?, opponentmoves=? WHERE name=?";
-		String loserSql  = "UPDATE playerstats SET gamesplayed=?, totalpoints=?, gameslose=?, highestpoint=?, opponentpoint=?, fewestmoves=?, opponentmoves=? WHERE name=?";
-		try(PreparedStatement w = con.prepareStatement(winnerSql);
-		    PreparedStatement l = con.prepareStatement(loserSql)){
-			w.setInt(1, gamesPlayed2); w.setInt(2, totalPoints2); w.setInt(3, gamesWin2);
-			w.setInt(4, highestPoint2); w.setString(5, opponentPoint2); w.setInt(6, fewestMoves2);
-			w.setString(7, opponentMoves2); w.setString(8, player2);
-			w.executeUpdate();
-			l.setInt(1, gamesPlayed); l.setInt(2, totalPoints); l.setInt(3, gamesLose);
-			l.setInt(4, highestPoint); l.setString(5, opponentPoint); l.setInt(6, fewestMoves);
-			l.setString(7, opponentMoves); l.setString(8, player1);
-			l.executeUpdate();
-		}catch(java.sql.SQLException ex){
-			overlayMessage("Error", "Could not save game result: " + ex.getMessage());
-		}
-                purge();
-	}
-	
-	public void gameDraw(){
-		gamesPlayed++;
-		gamesPlayed2++;
-		totalPoints = totalPoints + P1points;
-		totalPoints2 = totalPoints2 + P2points;
-		gamesDraw++;
-		gamesDraw2++;
-		if(P1points>highestPoint){
-			highestPoint = P1points;
-			opponentPoint = String.valueOf(playerData.get(10));
-		}
-		if(P2points>highestPoint2){
-			highestPoint2 = P2points;
-			opponentPoint2 = String.valueOf(playerData.get(0));
-		}
-		// A draw is not a win, so it sets no "fewest moves to win" record for either player.
-		String drawSql = "UPDATE playerstats SET gamesplayed=?, totalpoints=?, gamesdraw=?, highestpoint=?, opponentpoint=?, fewestmoves=?, opponentmoves=? WHERE name=?";
-		try(PreparedStatement p1 = con.prepareStatement(drawSql);
-		    PreparedStatement p2 = con.prepareStatement(drawSql)){
-			p1.setInt(1, gamesPlayed); p1.setInt(2, totalPoints); p1.setInt(3, gamesDraw);
-			p1.setInt(4, highestPoint); p1.setString(5, opponentPoint); p1.setInt(6, fewestMoves);
-			p1.setString(7, opponentMoves); p1.setString(8, player1);
-			p1.executeUpdate();
-			p2.setInt(1, gamesPlayed2); p2.setInt(2, totalPoints2); p2.setInt(3, gamesDraw2);
-			p2.setInt(4, highestPoint2); p2.setString(5, opponentPoint2); p2.setInt(6, fewestMoves2);
-			p2.setString(7, opponentMoves2); p2.setString(8, player2);
-			p2.executeUpdate();
-		}catch(java.sql.SQLException ex){
-			overlayMessage("Error", "Could not save game result: " + ex.getMessage());
-		}
-                purge();
 	}
 
 	public void showPlayerList(){
@@ -1530,10 +1246,4 @@ public final class Dama extends JPanel{
 			overlayMessage("Error", "Could not load player list: " + ex.getMessage());
 		}
 	}
-        
-        public void purge(){
-            word.clear();
-            scores.clear();
-            playerData.clear();
-        }
 }

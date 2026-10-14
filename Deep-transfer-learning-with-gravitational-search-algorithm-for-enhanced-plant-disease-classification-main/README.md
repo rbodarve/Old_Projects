@@ -30,6 +30,7 @@ Gravitational Search Algorithm (GSA) for hyperparameter tuning.**
 - [How the GSA Works](#how-the-gsa-works)
 - [Results](#results)
 - [Caveats](#caveats)
+- [Review notes (2026-10-14)](#review-notes-2026-10-14)
 - [Acknowledgements & Sources](#acknowledgements--sources)
 
 ## About
@@ -164,6 +165,35 @@ validation accuracy during the search was 0.8215, and it did not change across a
   reliability.
 - **Lab imagery.** PlantVillage photos are taken in lab conditions, so accuracy on field photos
   will be lower.
+
+## Review notes (2026-10-14)
+
+Known issues from a static code review. They are not fixed, and the review did not run the
+notebook. "Cell N" is the Nth code cell.
+
+- **G-1 (High, fallback only)** — cell 7: when `test/` is missing, `valid` loads unshuffled, so
+  `take`/`skip` split it by class. Fix: shuffle with a fixed seed before the split, or stop
+  with a clear error.
+- **G-2 (Medium, fallback only)** — cell 8: `val_ds.class_names` raises `AttributeError` after
+  `.skip()`. Fix: save the class names in cell 7 before the split.
+- **G-3 (Medium)** — cell 16: `G0=100` makes one GSA step about 20 in a [0, 1] space, so
+  `np.clip` pins agents to the corners. Fix: use `G0` of 0.1–1 and zero `V` on clipped dimensions.
+- **G-4 (Medium)** — cells 26–27: `classification_report` and `confusion_matrix` infer labels
+  from the data, so a missing class breaks the 38-class output. Fix: pass
+  `labels=range(NUM_CLASSES)`, and `zero_division=0` to the report.
+- **G-5 (Low/Medium)** — cell 22: phase 2 reuses the phase-1 `EarlyStopping`, so it can restore
+  weights worse than the phase-1 best. Fix: use a new callback and keep the better model.
+- **G-6 (Low/Medium)** — cell 15: candidate fitness depends on the global TF random state, so
+  the ranking mixes hyperparameters and seed noise. Fix: call
+  `tf.keras.utils.set_random_seed(SEED)` at the start of `fitness`.
+- **G-7 (Low)** — cell 16: velocity keeps its out-of-range size after clipping, and the last
+  iteration updates `X` without evaluating it. Fix: zero `V` where clipped; skip the last update.
+- **G-8 (Low)** — cells 18 and 31: `search_val_accuracy` is the best of 25 short search runs,
+  not the final model. Fix: label it "search-time val_accuracy (3 epochs, subset)".
+
+The saved [`results/`](results/) run used a real `test/` split, so G-1, G-2 and G-4 did not
+affect it. Fixes for G-3, G-5, G-6, G-7 and G-8 would change the saved results or outputs, so
+they stay unfixed until the notebook is re-run.
 
 ## Acknowledgements & Sources
 
